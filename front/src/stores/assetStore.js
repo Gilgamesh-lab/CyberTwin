@@ -46,7 +46,7 @@ export const useAssetStore = defineStore('asset', {
     deleteAsset(id) {
       this.assets = this.assets.filter(a => a.id !== id)
     },
-    getAssetById(id) {
+    obtenirParId(id) {
       return this.assets.find(a => a.id === id)
     }
   }
