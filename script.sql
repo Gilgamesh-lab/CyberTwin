@@ -11,3 +11,4 @@ CREATE TABLE Entreprise(
    risque_cyber TEXT,
    PRIMARY KEY(id_entreprise)
 );
+/* demo sous forme de vidéo*/
