@@ -3,6 +3,7 @@ import Navigation from './components/layout/Navigation.vue'
 </script>
 
 <template>
-  <Navigation />
-  <router-view />
+  <Navigation>
+    <router-view />
+  </Navigation>
 </template>
