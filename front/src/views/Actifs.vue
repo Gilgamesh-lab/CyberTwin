@@ -167,7 +167,7 @@ const getCriticalityLabel = (criticality) => {
         </tbody>
       </table>
       <div v-else class="empty-state">
-        <p>Aucun actif enregistré. Commencez par en ajouter un !</p>
+        <p>Aucun actif enregistré</p>
       </div>
     </div>
 
