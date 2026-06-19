@@ -39,12 +39,12 @@
           "response": []
         },
         {
-          "name": "getCompagnies",
+          "name": "getCompanies",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3000/api/compagny/getCompanies",
+              "raw": "http://localhost:3000/api/company/getCompanies",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -52,7 +52,7 @@
               "port": "3000",
               "path": [
                 "api",
-                "compagny",
+                "company",
                 "getCompanies"
               ]
             }
@@ -65,7 +65,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3000/api/compagny/getCompanyActifs/:id",
+              "raw": "http://localhost:3000/api/company/getCompanyActifs/:id",
               "protocol": "http",
               "host": [
                 "localhost"
@@ -73,7 +73,7 @@
               "port": "3000",
               "path": [
                 "api",
-                "compagny",
+                "company",
                 "getCompanyActifs",
                 ":id"
               ],
@@ -81,6 +81,76 @@
                 {
                   "key": "id",
                   "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "addCompany",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"nom\" : \"Test\",\r\n    \"secteur_activite\" : \"Finance\",\r\n    \"nombre_employes\" : 500,\r\n    \"nombre_serveurs\" : 200,\r\n    \"nombre_postes_clients\" : 100,\r\n    \"services_exposes\" : \"HTTPS, API REST, SMTP, VPN\",\r\n    \"gestion_vulnerabilites\" : \"Scan mensuel et correctifs trimestriels\",\r\n    \"risque_cyber\" : \"Élevé\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/company/addCompagny",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "company",
+                "addCompagny"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "updateCompany",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \r\n    \"nom\" : \"test\",\r\n    \"secteur_activite\" : \"Finance\",\r\n    \"nombre_employes\" : 500,\r\n    \"nombre_serveurs\" : 200,\r\n    \"nombre_postes_clients\" : 100,\r\n    \"services_exposes\" : \"HTTPS, API REST, SMTP, VPN\",\r\n    \"gestion_vulnerabilites\" : \"Scan mensuel et correctifs trimestriels\",\r\n    \"risque_cyber\" : \"Élevé\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/company/updateCompany/:id",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "company",
+                "updateCompany",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "11"
                 }
               ]
             }
