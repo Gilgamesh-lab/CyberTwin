@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAssetStore } from '../stores/assetStore'
 
 const assetStore = useAssetStore()
@@ -7,6 +7,7 @@ const assetStore = useAssetStore()
 const showModal = ref(false)
 const isEditing = ref(false)
 const editingAssetId = ref(null)
+const soumissionEnCours = ref(false)
 
 const formData = ref({
   name: '',
@@ -15,6 +16,21 @@ const formData = ref({
   ipAddress: '',
   criticality: 'medium'
 })
+
+onMounted(() => {
+  assetStore.chargerActifs()
+  document.addEventListener('keydown', gererToucheEchap)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', gererToucheEchap)
+})
+
+const gererToucheEchap = (event) => {
+  if (event.key === 'Escape' && showModal.value) {
+    closeModal()
+  }
+}
 
 const assetTypes = [
   'Serveur Web',
@@ -85,22 +101,41 @@ const openEditModal = (asset) => {
 const closeModal = () => {
   showModal.value = false
   errors.value = {}
-}
-
-const handleSubmit = () => {
-  if (validateForm()) {
-    if (isEditing.value) {
-      assetStore.updateAsset(editingAssetId.value, formData.value)
-    } else {
-      assetStore.addAsset(formData.value)
-    }
-    closeModal()
+  formData.value = {
+    name: '',
+    type: '',
+    description: '',
+    ipAddress: '',
+    criticality: 'medium'
   }
 }
 
-const handleDelete = (id) => {
+const handleSubmit = async () => {
+  if (validateForm()) {
+    soumissionEnCours.value = true
+    
+    try {
+      if (isEditing.value) {
+        await assetStore.modifierActif(editingAssetId.value, formData.value)
+      } else {
+        await assetStore.ajouterActif(formData.value)
+      }
+      closeModal()
+    } catch (erreur) {
+      console.error('Erreur soumission:', erreur)
+    } finally {
+      soumissionEnCours.value = false
+    }
+  }
+}
+
+const handleDelete = async (id) => {
   if (confirm('Êtes-vous sûr de vouloir supprimer cet actif ?')) {
-    assetStore.deleteAsset(id)
+    try {
+      await assetStore.supprimerActif(id)
+    } catch (erreur) {
+      console.error('Erreur suppression:', erreur)
+    }
   }
 }
 
@@ -235,11 +270,9 @@ const getCriticalityLabel = (criticality) => {
           </div>
 
           <div class="form-actions">
-            <button type="submit" class="btn-primary">
-              {{ isEditing ? 'Modifier' : 'Ajouter' }}
-            </button>
-            <button type="button" @click="closeModal" class="btn-secondary">
-              Annuler
+            <button type="button" @click="closeModal" class="btn-secondary" :disabled="soumissionEnCours">Annuler</button>
+            <button type="submit" class="btn-primary" :disabled="soumissionEnCours">
+              {{ soumissionEnCours ? 'En cours...' : (isEditing ? 'Modifier l\'actif' : 'Ajouter l\'actif') }}
             </button>
           </div>
         </form>
@@ -257,39 +290,52 @@ const getCriticalityLabel = (criticality) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 h1 {
-  color: #0f172a;
+  color: var(--text-primary);
   margin: 0;
   font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: -0.5px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .btn-primary {
-  padding: 0.75rem 1.5rem;
-  background: #3b82f6;
+  padding: 0.875rem 1.75rem;
+  background: var(--accent-primary);
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 0.95rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-subtle);
 }
 
-.btn-primary:hover {
-  background: #2563eb;
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-secondary);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .assets-table-container {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-card);
   overflow-x: auto;
-  border: 1px solid #e2e8f0;
+  transition: all var(--transition-normal);
+}
+
+.assets-table-container:hover {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-glow);
 }
 
 .assets-table {
@@ -298,26 +344,27 @@ h1 {
 }
 
 .assets-table thead {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  color: white;
+  background: var(--bg-secondary);
 }
 
 .assets-table th {
-  padding: 1rem 1.25rem;
+  padding: 1rem 1.5rem;
   text-align: left;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-card);
 }
 
 .assets-table tbody tr {
-  border-bottom: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: all var(--transition-fast);
 }
 
 .assets-table tbody tr:hover {
-  background: #f8fafc;
+  background: var(--bg-hover);
 }
 
 .assets-table tbody tr:last-child {
@@ -325,8 +372,8 @@ h1 {
 }
 
 .assets-table td {
-  padding: 1rem 1.25rem;
-  color: #475569;
+  padding: 1rem 1.5rem;
+  color: var(--text-secondary);
 }
 
 .actions-cell {
@@ -334,60 +381,68 @@ h1 {
   gap: 0.5rem;
 }
 
-.btn-edit,
-.btn-delete {
+.btn-modifier,
+.btn-supprimer {
   padding: 0.5rem 0.75rem;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
+  font-size: 1rem;
+  transition: all var(--transition-fast);
   font-weight: 500;
 }
 
-.btn-edit {
-  background: #f59e0b;
+.btn-modifier {
+  background: var(--risk-medium);
   color: white;
 }
 
-.btn-edit:hover {
+.btn-modifier:hover {
   background: #d97706;
   transform: translateY(-1px);
 }
 
-.btn-edit:active {
-  transform: translateY(0);
-}
-
-.btn-delete {
-  background: #ef4444;
+.btn-supprimer {
+  background: var(--risk-high);
   color: white;
 }
 
-.btn-delete:hover {
-  background: #dc2626;
+.btn-supprimer:hover {
+  background: var(--risk-critical);
   transform: translateY(-1px);
 }
 
-.btn-delete:active {
-  transform: translateY(0);
-}
-
-.criticality-badge {
+.badge-criticite {
   display: inline-block;
   padding: 0.375rem 0.875rem;
   border-radius: 20px;
   color: white;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
+}
+
+.badge-faible {
+  background: var(--risk-low);
+}
+
+.badge-moyen {
+  background: var(--risk-medium);
+}
+
+.badge-eleve {
+  background: var(--risk-high);
+}
+
+.badge-critique {
+  background: var(--risk-critical);
 }
 
 .empty-state {
   padding: 4rem 2rem;
   text-align: center;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .empty-state p {
@@ -402,22 +457,34 @@ h1 {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: fadeIn var(--transition-normal);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-content {
-  background: white;
-  border-radius: 8px;
+  background: var(--bg-card);
+  border-radius: 12px;
   width: 90%;
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border: 1px solid #e2e8f0;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border-card);
+  animation: slideUp var(--transition-normal);
 }
 
 @keyframes slideUp {
@@ -435,51 +502,54 @@ h1 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-card);
+  background: var(--bg-secondary);
 }
 
 .modal-header h2 {
   margin: 0;
-  color: #1e293b;
+  color: var(--text-primary);
   font-size: 1.25rem;
   font-weight: 600;
 }
 
 .btn-close {
-  background: white;
-  border: 1px solid #e2e8f0;
-  font-size: 1.5rem;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-card);
+  font-size: 1.25rem;
   cursor: pointer;
-  color: #64748b;
+  color: var(--text-secondary);
   padding: 0;
   width: 36px;
   height: 36px;
   line-height: 1;
   border-radius: 8px;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
 .btn-close:hover {
-  color: #0f172a;
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border-color: var(--accent-primary);
 }
 
 .modal-form {
   padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
 .form-group {
-  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
@@ -487,65 +557,73 @@ h1 {
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  transition: border-color 0.2s ease;
-  background: white;
-  color: #1e293b;
+  padding: 0.875rem;
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: all var(--transition-fast);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-family: inherit;
+  box-sizing: border-box;
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .form-group input.error,
 .form-group select.error {
-  border-color: #ef4444;
-  background: #fef2f2;
+  border-color: var(--risk-high);
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .form-group input.error:focus,
 .form-group select.error:focus {
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
 }
 
 .error-message {
   display: block;
-  color: #ef4444;
+  color: var(--risk-high);
   font-size: 0.875rem;
-  margin-top: 0.5rem;
   font-weight: 500;
 }
 
 .form-actions {
   display: flex;
+  justify-content: flex-end;
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   padding-top: 1.5rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border-card);
 }
 
 .btn-secondary {
-  padding: 0.75rem 1.5rem;
-  background: #64748b;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.95rem;
+  padding: 0.875rem 1.75rem;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
-.btn-secondary:hover {
-  background: #475569;
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
@@ -556,7 +634,7 @@ h1 {
   }
 
   h1 {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
 
   .assets-table {
@@ -574,19 +652,19 @@ h1 {
   }
 
   .modal-header {
-    padding: 1.5rem 1.25rem;
+    padding: 1.25rem;
   }
 
   .modal-form {
-    padding: 1.5rem 1.25rem;
+    padding: 1.25rem;
   }
 
-  .form-actions {
+  .actions-formulaire {
     flex-direction: column;
   }
 
   .btn-primary,
-  .btn-secondary {
+  .btn-secondaire {
     width: 100%;
   }
 }

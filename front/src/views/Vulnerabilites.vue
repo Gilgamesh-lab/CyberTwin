@@ -5,6 +5,12 @@ import { useAssetStore } from '../stores/assetStore'
 
 const vulnerabilityStore = useVulnerabilityStore()
 const assetStore = useAssetStore()
+const soumissionEnCours = ref(false)
+
+onMounted(() => {
+  assetStore.chargerActifs()
+  vulnerabilityStore.chargerVulnerabilites()
+})
 
 const afficherModal = ref(false)
 const vulnerabiliteEnEdition = ref(null)
@@ -69,16 +75,24 @@ const fermerModal = () => {
   vulnerabiliteEnEdition.value = null
 }
 
-const soumettreFormulaire = () => {
+const soumettreFormulaire = async () => {
   if (!validerFormulaire()) return
   
-  if (vulnerabiliteEnEdition.value) {
-    vulnerabilityStore.modifierVulnerabilite(vulnerabiliteEnEdition.value.id, donneesFormulaire.value)
-  } else {
-    vulnerabilityStore.ajouterVulnerabilite(donneesFormulaire.value)
-  }
+  soumissionEnCours.value = true
   
-  fermerModal()
+  try {
+    if (vulnerabiliteEnEdition.value) {
+      vulnerabilityStore.modifierVulnerabilite(vulnerabiliteEnEdition.value.id, donneesFormulaire.value)
+    } else {
+      vulnerabilityStore.ajouterVulnerabilite(donneesFormulaire.value)
+    }
+    
+    fermerModal()
+  } catch (erreur) {
+    console.error('Erreur soumission:', erreur)
+  } finally {
+    soumissionEnCours.value = false
+  }
 }
 
 const supprimerVulnerabilite = (id) => {
@@ -132,7 +146,7 @@ onUnmounted(() => {
   <div class="page-vulnerabilites">
     <div class="en-tete-page">
       <h1>Vulnérabilités</h1>
-      <button class="btn-principal" @click="ouvrirModal()">Ajouter</button>
+      <button class="btn-principal" @click="ouvrirModal()">+ Ajouter une vulnérabilité</button>
     </div>
 
     <div class="conteneur-tableau">
@@ -178,38 +192,38 @@ onUnmounted(() => {
           <h2>{{ vulnerabiliteEnEdition ? 'Modifier' : 'Ajouter' }} une vulnérabilité</h2>
           <button class="btn-fermer" @click="fermerModal">×</button>
         </div>
-        <form @submit.prevent="soumettreFormulaire" class="formulaire-modal">
-          <div class="groupe-formulaire">
+        <form @submit.prevent="soumettreFormulaire" class="modal-form">
+          <div class="form-group">
             <label for="actifId">Actif *</label>
             <select
               id="actifId"
               v-model="donneesFormulaire.actifId"
-              :class="{ 'erreur': erreurs.actifId }"
+              :class="{ 'error': erreurs.actifId }"
             >
               <option value="">Sélectionner un actif</option>
               <option v-for="actif in assetStore.assets" :key="actif.id" :value="actif.id">
                 {{ actif.name }}
               </option>
             </select>
-            <span v-if="erreurs.actifId" class="message-erreur">{{ erreurs.actifId }}</span>
+            <span v-if="erreurs.actifId" class="error-message">{{ erreurs.actifId }}</span>
           </div>
 
-          <div class="groupe-formulaire">
+          <div class="form-group">
             <label for="nom">Nom de la vulnérabilité *</label>
             <select
               id="nom"
               v-model="donneesFormulaire.nom"
-              :class="{ 'erreur': erreurs.nom }"
+              :class="{ 'error': erreurs.nom }"
             >
               <option value="">Sélectionner un type</option>
               <option v-for="type in typesVulnerabilites" :key="type" :value="type">
                 {{ type }}
               </option>
             </select>
-            <span v-if="erreurs.nom" class="message-erreur">{{ erreurs.nom }}</span>
+            <span v-if="erreurs.nom" class="error-message">{{ erreurs.nom }}</span>
           </div>
 
-          <div class="groupe-formulaire">
+          <div class="form-group">
             <label for="criticite">Criticité</label>
             <select id="criticite" v-model="donneesFormulaire.criticite">
               <option v-for="niveau in niveauxCriticite" :key="niveau.valeur" :value="niveau.valeur">
@@ -218,7 +232,7 @@ onUnmounted(() => {
             </select>
           </div>
 
-          <div class="groupe-formulaire">
+          <div class="form-group">
             <label for="description">Description</label>
             <textarea
               id="description"
@@ -227,10 +241,10 @@ onUnmounted(() => {
             ></textarea>
           </div>
 
-          <div class="actions-formulaire">
-            <button type="button" class="btn-secondaire" @click="fermerModal">Annuler</button>
-            <button type="submit" class="btn-principal">
-              {{ vulnerabiliteEnEdition ? 'Modifier' : 'Ajouter' }}
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" @click="fermerModal" :disabled="soumissionEnCours">Annuler</button>
+            <button type="submit" class="btn-primary" :disabled="soumissionEnCours">
+              {{ soumissionEnCours ? 'En cours...' : (vulnerabiliteEnEdition ? 'Modifier la vulnérabilité' : 'Ajouter la vulnérabilité') }}
             </button>
           </div>
         </form>
@@ -248,38 +262,52 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 h1 {
-  color: #0f172a;
+  color: var(--text-primary);
   margin: 0;
-  font-size: 1.75rem;
+  font-size: 2rem;
   font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .btn-principal {
-  padding: 0.75rem 1.5rem;
-  background: #3b82f6;
+  padding: 0.875rem 1.75rem;
+  background: var(--accent-primary);
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 0.95rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-subtle);
 }
 
-.btn-principal:hover {
-  background: #2563eb;
+.btn-principal:hover:not(:disabled) {
+  background: var(--accent-secondary);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-1px);
+}
+
+.btn-principal:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .conteneur-tableau {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-card);
   overflow-x: auto;
-  border: 1px solid #e2e8f0;
+  transition: all var(--transition-normal);
+}
+
+.conteneur-tableau:hover {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-glow);
 }
 
 .tableau-vulnerabilites {
@@ -288,26 +316,27 @@ h1 {
 }
 
 .tableau-vulnerabilites thead {
-  background: #0f172a;
-  color: white;
+  background: var(--bg-secondary);
 }
 
 .tableau-vulnerabilites th {
-  padding: 1rem 1.25rem;
+  padding: 1rem 1.5rem;
   text-align: left;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-card);
 }
 
 .tableau-vulnerabilites tbody tr {
-  border-bottom: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: all var(--transition-fast);
 }
 
 .tableau-vulnerabilites tbody tr:hover {
-  background: #f8fafc;
+  background: var(--bg-hover);
 }
 
 .tableau-vulnerabilites tbody tr:last-child {
@@ -315,8 +344,8 @@ h1 {
 }
 
 .tableau-vulnerabilites td {
-  padding: 1rem 1.25rem;
-  color: #475569;
+  padding: 1rem 1.5rem;
+  color: var(--text-secondary);
 }
 
 .cellule-actions {
@@ -331,26 +360,28 @@ h1 {
   border-radius: 6px;
   cursor: pointer;
   font-size: 1rem;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
   font-weight: 500;
 }
 
 .btn-modifier {
-  background: #f59e0b;
+  background: var(--risk-medium);
   color: white;
 }
 
 .btn-modifier:hover {
   background: #d97706;
+  transform: translateY(-1px);
 }
 
 .btn-supprimer {
-  background: #ef4444;
+  background: var(--risk-high);
   color: white;
 }
 
 .btn-supprimer:hover {
-  background: #dc2626;
+  background: var(--risk-critical);
+  transform: translateY(-1px);
 }
 
 .badge-criticite {
@@ -358,16 +389,32 @@ h1 {
   padding: 0.375rem 0.875rem;
   border-radius: 20px;
   color: white;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
+}
+
+.badge-faible {
+  background: var(--risk-low);
+}
+
+.badge-moyen {
+  background: var(--risk-medium);
+}
+
+.badge-eleve {
+  background: var(--risk-high);
+}
+
+.badge-critique {
+  background: var(--risk-critical);
 }
 
 .etat-vide {
   padding: 4rem 2rem;
   text-align: center;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .etat-vide p {
@@ -381,137 +428,199 @@ h1 {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   pointer-events: auto;
+  animation: fadeIn var(--transition-normal);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .contenu-modal {
-  background: white;
-  border-radius: 8px;
+  background: var(--bg-card);
+  border-radius: 12px;
   width: 90%;
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border: 1px solid #e2e8f0;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border-card);
   pointer-events: auto;
+  animation: slideUp var(--transition-normal);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .en-tete-modal {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-card);
+  background: var(--bg-secondary);
 }
 
 .en-tete-modal h2 {
   margin: 0;
-  color: #1e293b;
+  color: var(--text-primary);
   font-size: 1.25rem;
   font-weight: 600;
 }
 
 .btn-fermer {
-  background: white;
-  border: 1px solid #e2e8f0;
-  font-size: 1.5rem;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-card);
+  font-size: 1.25rem;
   cursor: pointer;
-  color: #64748b;
+  color: var(--text-secondary);
   padding: 0;
   width: 36px;
   height: 36px;
   line-height: 1;
   border-radius: 8px;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
 .btn-fermer:hover {
-  color: #0f172a;
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border-color: var(--accent-primary);
 }
 
-.formulaire-modal {
+.modal-form {
   padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
-.groupe-formulaire {
-  margin-bottom: 1.25rem;
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.groupe-formulaire label {
-  display: block;
-  margin-bottom: 0.5rem;
+.form-group label {
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
-.groupe-formulaire select,
-.groupe-formulaire textarea {
+.form-group input,
+.form-group select,
+.form-group textarea {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  transition: border-color 0.2s ease;
-  background: white;
-  color: #1e293b;
+  padding: 0.875rem;
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: all var(--transition-fast);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   font-family: inherit;
+  box-sizing: border-box;
 }
 
-.groupe-formulaire select:focus,
-.groupe-formulaire textarea:focus {
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
-.groupe-formulaire select.erreur {
-  border-color: #ef4444;
-  background: #fef2f2;
+.form-group input.error,
+.form-group select.error {
+  border-color: var(--risk-high);
+  background: rgba(239, 68, 68, 0.1);
 }
 
-.groupe-formulaire select.erreur:focus {
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+.form-group input.error:focus,
+.form-group select.error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
 }
 
-.message-erreur {
+.error-message {
   display: block;
-  color: #ef4444;
+  color: var(--risk-high);
   font-size: 0.875rem;
-  margin-top: 0.5rem;
   font-weight: 500;
 }
 
-.actions-formulaire {
+.form-actions {
   display: flex;
+  justify-content: flex-end;
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   padding-top: 1.5rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border-card);
 }
 
-.btn-secondaire {
-  padding: 0.75rem 1.5rem;
-  background: #64748b;
+.btn-primary {
+  padding: 0.875rem 1.75rem;
+  background: var(--accent-primary);
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 0.95rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-subtle);
 }
 
-.btn-secondaire:hover {
-  background: #475569;
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-secondary);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  padding: 0.875rem 1.75rem;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
@@ -540,7 +649,7 @@ h1 {
   }
 
   .en-tete-modal {
-    padding: 1rem 1.25rem;
+    padding: 1.25rem;
   }
 
   .formulaire-modal {

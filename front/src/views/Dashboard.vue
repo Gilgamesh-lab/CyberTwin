@@ -12,8 +12,11 @@ const assetStore = useAssetStore()
 const chartCanvas = ref(null)
 let chartInstance = null
 
-onMounted(() => {
-  riskStore.calculateRisk()
+onMounted(async () => {
+  await assetStore.chargerActifs()
+  await vulnerabilityStore.chargerVulnerabilites()
+  await companyStore.chargerEntreprise()
+  await riskStore.calculerRisque()
   creerGraphique()
 })
 
@@ -30,7 +33,7 @@ const creerGraphique = () => {
       labels: ['Faible', 'Moyen', 'Élevé'],
       datasets: [{
         data: [criticiteFaible, criticiteMoyen, criticiteEleve],
-        backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
+        backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
         borderWidth: 0
       }]
     },
@@ -39,7 +42,14 @@ const creerGraphique = () => {
       maintainAspectRatio: true,
       plugins: {
         legend: {
-          position: 'bottom'
+          position: 'bottom',
+          labels: {
+            color: '#d1d5db',
+            font: {
+              size: 14
+            },
+            padding: 20
+          }
         }
       }
     }
@@ -49,30 +59,40 @@ const creerGraphique = () => {
 
 <template>
   <div class="page-dashboard">
-    <h1>Tableau de bord</h1>
-    
-    <div class="grille-metriques">
-      <div class="carte-metrique">
-        <div class="label-metrique">Total Actifs</div>
-        <div class="valeur-metrique">{{ riskStore.metrics.totalAssets }}</div>
-      </div>
-      <div class="carte-metrique">
-        <div class="label-metrique">Total Vulnérabilités</div>
-        <div class="valeur-metrique">{{ riskStore.metrics.totalVulnerabilities }}</div>
-      </div>
-      <div class="carte-metrique">
-        <div class="label-metrique">Score de Risque</div>
-        <div class="valeur-metrique" :style="{ color: riskStore.getRiskLevelColor() }">
-          {{ riskStore.riskScore }}/100
-        </div>
-      </div>
-      <div class="carte-metrique">
-        <div class="label-metrique">Niveau de Risque</div>
-        <div class="valeur-metrique" :style="{ color: riskStore.getRiskLevelColor() }">
-          {{ riskStore.getRiskLevelLabel() }}
-        </div>
-      </div>
+    <div v-if="riskStore.chargement" class="conteneur-chargement">
+      <div class="spinner"></div>
+      <p>Chargement du tableau de bord...</p>
     </div>
+    
+    <div v-else-if="riskStore.erreur" class="conteneur-erreur">
+      <p>{{ riskStore.erreur }}</p>
+    </div>
+    
+    <template v-else>
+      <h1>Tableau de bord</h1>
+    
+      <div class="grille-metriques">
+        <div class="carte-metrique">
+          <div class="label-metrique">Total Actifs</div>
+          <div class="valeur-metrique">{{ riskStore.metrics.totalAssets }}</div>
+        </div>
+        <div class="carte-metrique">
+          <div class="label-metrique">Total Vulnérabilités</div>
+          <div class="valeur-metrique">{{ riskStore.metrics.totalVulnerabilities }}</div>
+        </div>
+        <div class="carte-metrique">
+          <div class="label-metrique">Score de Risque</div>
+          <div class="valeur-metrique" :style="{ color: riskStore.getRiskLevelColor() }">
+            {{ riskStore.riskScore }}/100
+          </div>
+        </div>
+        <div class="carte-metrique">
+          <div class="label-metrique">Niveau de Risque</div>
+          <div class="valeur-metrique" :style="{ color: riskStore.getRiskLevelColor() }">
+            {{ riskStore.getRiskLevelLabel() }}
+          </div>
+        </div>
+      </div>
 
     <div class="grille-graphiques">
       <div class="carte-graphique">
@@ -91,6 +111,7 @@ const creerGraphique = () => {
         </li>
       </ul>
     </div>
+    </template>
   </div>
 </template>
 
@@ -100,81 +121,96 @@ const creerGraphique = () => {
 }
 
 h1 {
-  color: #0f172a;
-  margin-bottom: 2rem;
-  font-size: 1.75rem;
+  color: var(--text-primary);
+  margin-bottom: 2.5rem;
+  font-size: 2rem;
   font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .grille-metriques {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
 }
 
 .carte-metrique {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  background: var(--bg-card);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-card);
+  transition: all var(--transition-normal);
+}
+
+.carte-metrique:hover {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
 }
 
 .label-metrique {
-  color: #64748b;
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .valeur-metrique {
-  color: #0f172a;
-  font-size: 2rem;
+  color: var(--text-primary);
+  font-size: 2.5rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .grille-graphiques {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
 }
 
 .carte-graphique {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  background: var(--bg-card);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-card);
+  transition: all var(--transition-normal);
+}
+
+.carte-graphique:hover {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-glow);
 }
 
 .carte-graphique h3 {
-  color: #1e293b;
-  margin: 0 0 1rem 0;
-  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin: 0 0 1.5rem 0;
+  font-size: 1.125rem;
   font-weight: 600;
 }
 
 .conteneur-graphique {
   position: relative;
-  height: 300px;
+  height: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .carte-recommandations {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  background: var(--bg-card);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-card);
 }
 
 .carte-recommandations h3 {
-  color: #1e293b;
-  margin: 0 0 1rem 0;
-  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin: 0 0 1.5rem 0;
+  font-size: 1.125rem;
   font-weight: 600;
 }
 
@@ -184,9 +220,9 @@ h1 {
 }
 
 .carte-recommandations li {
-  color: #475569;
-  margin-bottom: 0.5rem;
-  line-height: 1.5;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
 }
 
 @media (max-width: 768px) {
@@ -197,5 +233,50 @@ h1 {
   .grille-graphiques {
     grid-template-columns: 1fr;
   }
+  
+  h1 {
+    font-size: 1.5rem;
+  }
+  
+  .valeur-metrique {
+    font-size: 2rem;
+  }
+}
+
+.conteneur-chargement {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border-card);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.conteneur-chargement p {
+  color: var(--text-secondary);
+}
+
+.conteneur-erreur {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--risk-high);
+  border-radius: 12px;
+  padding: 2rem;
+  color: var(--risk-high);
+  text-align: center;
 }
 </style>

@@ -1,51 +1,79 @@
 import { defineStore } from 'pinia'
+import { apiService } from '../services/apiService'
 
 export const useAssetStore = defineStore('asset', {
   state: () => ({
-    assets: [
-      {
-        id: 1,
-        name: 'Serveur Web',
-        type: 'Serveur Web',
-        ipAddress: '192.168.1.10',
-        criticality: 'critical',
-        description: 'Serveur web public'
-      },
-      {
-        id: 2,
-        name: 'Base de données',
-        type: 'Base de données',
-        ipAddress: '192.168.1.20',
-        criticality: 'critical',
-        description: 'Base de données principale'
-      },
-      {
-        id: 3,
-        name: 'Poste Directeur',
-        type: 'Poste utilisateur',
-        ipAddress: '192.168.1.100',
-        criticality: 'high',
-        description: 'Station de travail du directeur'
-      }
-    ]
+    assets: [],
+    chargement: false,
+    erreur: null
   }),
   actions: {
-    addAsset(asset) {
-      const newAsset = {
-        id: Date.now(),
-        ...asset
+    async chargerActifs() {
+      this.chargement = true
+      this.erreur = null
+      
+      try {
+        const donnees = await apiService.obtenirActifs()
+        this.assets = donnees
+      } catch (erreur) {
+        this.erreur = 'Impossible de charger les actifs'
+        console.error('Erreur chargement actifs:', erreur)
+      } finally {
+        this.chargement = false
       }
-      this.assets.push(newAsset)
     },
-    updateAsset(id, updatedData) {
-      const index = this.assets.findIndex(a => a.id === id)
-      if (index !== -1) {
-        this.assets[index] = { ...this.assets[index], ...updatedData }
+    
+    async ajouterActif(actif) {
+      this.chargement = true
+      this.erreur = null
+      
+      try {
+        const nouvelActif = await apiService.creerActif(actif)
+        this.assets.push(nouvelActif)
+      } catch (erreur) {
+        this.erreur = 'Impossible d\'ajouter l\'actif'
+        console.error('Erreur ajout actif:', erreur)
+        throw erreur
+      } finally {
+        this.chargement = false
       }
     },
-    deleteAsset(id) {
-      this.assets = this.assets.filter(a => a.id !== id)
+    
+    async modifierActif(id, donnees) {
+      this.chargement = true
+      this.erreur = null
+      
+      try {
+        const actifModifie = await apiService.modifierActif(id, donnees)
+        const index = this.assets.findIndex(a => a.id === id)
+        if (index !== -1) {
+          this.assets[index] = actifModifie
+        }
+      } catch (erreur) {
+        this.erreur = 'Impossible de modifier l\'actif'
+        console.error('Erreur modification actif:', erreur)
+        throw erreur
+      } finally {
+        this.chargement = false
+      }
     },
+    
+    async supprimerActif(id) {
+      this.chargement = true
+      this.erreur = null
+      
+      try {
+        await apiService.supprimerActif(id)
+        this.assets = this.assets.filter(a => a.id !== id)
+      } catch (erreur) {
+        this.erreur = 'Impossible de supprimer l\'actif'
+        console.error('Erreur suppression actif:', erreur)
+        throw erreur
+      } finally {
+        this.chargement = false
+      }
+    },
+    
     obtenirParId(id) {
       return this.assets.find(a => a.id === id)
     }

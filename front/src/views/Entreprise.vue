@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useCompanyStore } from '../stores/companyStore'
 
 const companyStore = useCompanyStore()
@@ -37,6 +37,14 @@ const availableServices = [
 
 const errors = ref({})
 
+const profilComplet = computed(() => {
+  return formData.value.name.trim() !== '' &&
+         formData.value.sector !== '' &&
+         formData.value.employees >= 0 &&
+         formData.value.servers >= 0 &&
+         formData.value.workstations >= 0
+})
+
 const validateForm = () => {
   errors.value = {}
   
@@ -63,10 +71,14 @@ const validateForm = () => {
   return Object.keys(errors.value).length === 0
 }
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   if (validateForm()) {
-    companyStore.updateCompany(formData.value)
-    alert('Informations de l\'entreprise enregistrées avec succès!')
+    try {
+      await companyStore.mettreAJourEntreprise(formData.value)
+      alert('Informations de l\'entreprise enregistrées avec succès!')
+    } catch (erreur) {
+      alert('Erreur lors de l\'enregistrement des informations')
+    }
   }
 }
 
@@ -79,7 +91,8 @@ const toggleService = (service) => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await companyStore.chargerEntreprise()
   if (companyStore.companyData.name) {
     formData.value = { ...companyStore.companyData }
   }
@@ -88,84 +101,111 @@ onMounted(() => {
 
 <template>
   <div class="company-page">
-    <h1>Profil Entreprise</h1>
-    <p class="subtitle">Configurez les informations de votre entreprise pour l'analyse de risque cyber</p>
+    <div v-if="companyStore.chargement" class="conteneur-chargement">
+      <div class="spinner"></div>
+      <p>Chargement des données...</p>
+    </div>
     
-    <form @submit.prevent="handleSubmit" class="company-form">
-      <div class="form-group">
-        <label for="name">Nom de l'entreprise *</label>
-        <input
-          id="name"
-          v-model="formData.name"
-          type="text"
-          :class="{ 'error': errors.name }"
-        />
-        <span v-if="errors.name" class="error-message">{{ errors.name }}</span>
+    <div v-else-if="companyStore.erreur" class="conteneur-erreur">
+      <p>{{ companyStore.erreur }}</p>
+    </div>
+    
+    <template v-else>
+      <div class="page-header">
+        <div class="header-content">
+          <h1>Profil Entreprise</h1>
+          <span class="badge-statut" :class="{ 'complet': profilComplet, 'incomplet': !profilComplet }">
+            {{ profilComplet ? '✓ Complet' : '○ Incomplet' }}
+          </span>
+        </div>
+        <p class="subtitle">Configurez les informations de votre entreprise pour l'analyse de risque cyber</p>
       </div>
-
-      <div class="form-group">
-        <label for="sector">Secteur d'activité *</label>
-        <select
-          id="sector"
-          v-model="formData.sector"
-          :class="{ 'error': errors.sector }"
-        >
-          <option value="">Sélectionnez un secteur</option>
-          <option v-for="sector in sectors" :key="sector" :value="sector">
-            {{ sector }}
-          </option>
-        </select>
-        <span v-if="errors.sector" class="error-message">{{ errors.sector }}</span>
-      </div>
-
-      <div class="form-row">
+      
+      <form @submit.prevent="handleSubmit" class="company-form">
+      <div class="form-section">
+        <h2 class="section-title">Informations générales</h2>
+        
         <div class="form-group">
-          <label for="employees">Nombre d'employés</label>
+          <label for="name">Nom de l'entreprise *</label>
           <input
-            id="employees"
-            v-model.number="formData.employees"
-            type="number"
-            min="0"
-            :class="{ 'error': errors.employees }"
-            placeholder="0"
+            id="name"
+            v-model="formData.name"
+            type="text"
+            :class="{ 'error': errors.name }"
+            placeholder="Ex: Ma Société SAS"
           />
-          <span v-if="errors.employees" class="error-message">{{ errors.employees }}</span>
+          <span v-if="errors.name" class="error-message">{{ errors.name }}</span>
         </div>
 
         <div class="form-group">
-          <label for="servers">Nombre de serveurs</label>
-          <input
-            id="servers"
-            v-model.number="formData.servers"
-            type="number"
-            min="0"
-            :class="{ 'error': errors.servers }"
-            placeholder="0"
-          />
-          <span v-if="errors.servers" class="error-message">{{ errors.servers }}</span>
-        </div>
-
-        <div class="form-group">
-          <label for="workstations">Postes de travail clients</label>
-          <input
-            id="workstations"
-            v-model.number="formData.workstations"
-            type="number"
-            min="0"
-            :class="{ 'error': errors.workstations }"
-            placeholder="0"
-          />
-          <span v-if="errors.workstations" class="error-message">{{ errors.workstations }}</span>
+          <label for="sector">Secteur d'activité *</label>
+          <select
+            id="sector"
+            v-model="formData.sector"
+            :class="{ 'error': errors.sector }"
+          >
+            <option value="">Sélectionnez un secteur</option>
+            <option v-for="sector in sectors" :key="sector" :value="sector">
+              {{ sector }}
+            </option>
+          </select>
+          <span v-if="errors.sector" class="error-message">{{ errors.sector }}</span>
         </div>
       </div>
 
-      <div class="form-group">
-        <label>Services exposés sur Internet</label>
+      <div class="form-section">
+        <h2 class="section-title">Infrastructure</h2>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="employees">Nombre d'employés</label>
+            <input
+              id="employees"
+              v-model.number="formData.employees"
+              type="number"
+              min="0"
+              :class="{ 'error': errors.employees }"
+              placeholder="0"
+            />
+            <span v-if="errors.employees" class="error-message">{{ errors.employees }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="servers">Nombre de serveurs</label>
+            <input
+              id="servers"
+              v-model.number="formData.servers"
+              type="number"
+              min="0"
+              :class="{ 'error': errors.servers }"
+              placeholder="0"
+            />
+            <span v-if="errors.servers" class="error-message">{{ errors.servers }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="workstations">Postes de travail</label>
+            <input
+              id="workstations"
+              v-model.number="formData.workstations"
+              type="number"
+              min="0"
+              :class="{ 'error': errors.workstations }"
+              placeholder="0"
+            />
+            <span v-if="errors.workstations" class="error-message">{{ errors.workstations }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2 class="section-title">Services exposés sur Internet</h2>
         <div class="checkbox-group">
           <label
             v-for="service in availableServices"
             :key="service"
             class="checkbox-item"
+            :class="{ 'selected': formData.exposedServices.includes(service) }"
           >
             <input
               type="checkbox"
@@ -185,52 +225,106 @@ onMounted(() => {
         </button>
       </div>
     </form>
+    </template>
   </div>
 </template>
 
 <style scoped>
 .company-page {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
+.page-header {
+  margin-bottom: 2.5rem;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
 h1 {
-  color: #1e293b;
-  margin-bottom: 0.5rem;
-  font-size: 1.75rem;
+  color: var(--text-primary);
+  margin: 0;
+  font-size: 2rem;
   font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.badge-statut {
+  padding: 0.375rem 0.875rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-statut.complet {
+  background: var(--risk-low);
+  color: white;
+}
+
+.badge-statut.incomplet {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  border: 1px solid var(--border-card);
 }
 
 .subtitle {
-  color: #64748b;
-  margin-bottom: 2rem;
+  color: var(--text-secondary);
+  margin: 0;
   font-size: 1rem;
+  line-height: 1.6;
 }
 
 .company-form {
-  background: white;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.form-section {
+  background: var(--bg-card);
   padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  border: 1px solid var(--border-card);
+  transition: all var(--transition-normal);
+}
+
+.form-section:hover {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-glow);
+}
+
+.section-title {
+  color: var(--text-primary);
+  margin: 0 0 1.5rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .form-group {
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.5rem;
 }
 
 .form-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.25rem;
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.5rem;
 }
 
 label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.625rem;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
@@ -238,37 +332,38 @@ input[type="text"],
 input[type="number"],
 select {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  transition: border-color 0.2s ease;
-  background: white;
-  color: #1e293b;
+  padding: 0.875rem;
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: all var(--transition-fast);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
 }
 
 input[type="text"]:focus,
 input[type="number"]:focus,
 select:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 input.error,
 select.error {
-  border-color: #ef4444;
-  background: #fef2f2;
+  border-color: var(--risk-high);
+  background: rgba(239, 68, 68, 0.1);
 }
 
 input.error:focus,
 select.error:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
 }
 
 .error-message {
   display: block;
-  color: #ef4444;
+  color: var(--risk-high);
   font-size: 0.875rem;
   margin-top: 0.5rem;
   font-weight: 500;
@@ -283,35 +378,41 @@ select.error:focus {
 .checkbox-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.625rem;
   cursor: pointer;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  background: white;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  transition: all var(--transition-fast);
+  background: var(--bg-secondary);
   font-weight: 400;
-  color: #1e293b;
+  color: var(--text-secondary);
 }
 
 .checkbox-item:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+  background: var(--bg-hover);
+  border-color: var(--accent-primary);
+}
+
+.checkbox-item.selected {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
 }
 
 .checkbox-item input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  accent-color: #3b82f6;
+  accent-color: var(--accent-primary);
   cursor: pointer;
 }
 
 .form-actions {
   display: flex;
   gap: 1rem;
-  margin-top: 2.5rem;
+  margin-top: 1rem;
   padding-top: 2rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .btn-primary,
@@ -319,38 +420,81 @@ select.error:focus {
   padding: 0.875rem 2rem;
   border: none;
   border-radius: 8px;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: var(--accent-primary);
   color: white;
+  box-shadow: var(--shadow-subtle);
 }
 
 .btn-primary:hover {
-  background: #2563eb;
+  background: var(--accent-secondary);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
-  background: #64748b;
-  color: white;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-card);
 }
 
 .btn-secondary:hover {
-  background: #475569;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.conteneur-chargement {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border-card);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.conteneur-erreur {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--risk-high);
+  border-radius: 12px;
+  padding: 2rem;
+  color: var(--risk-high);
+  text-align: center;
 }
 
 @media (max-width: 768px) {
-  .company-form {
-    padding: 1.75rem;
-    border-radius: 12px;
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   h1 {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
+  }
+
+  .form-section {
+    padding: 1.5rem;
   }
 
   .form-row {

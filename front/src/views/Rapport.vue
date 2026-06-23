@@ -10,8 +10,11 @@ const assetStore = useAssetStore()
 const vulnerabilityStore = useVulnerabilityStore()
 const companyStore = useCompanyStore()
 
-onMounted(() => {
-  riskStore.calculateRisk()
+onMounted(async () => {
+  await assetStore.chargerActifs()
+  await vulnerabilityStore.chargerVulnerabilites()
+  await companyStore.chargerEntreprise()
+  await riskStore.calculerRisque()
 })
 
 const obtenirNomActif = (actifId) => {
@@ -40,9 +43,19 @@ const obtenirCouleurCriticite = (valeur) => {
 
 <template>
   <div class="page-rapport">
-    <h1>Rapport de Sécurité</h1>
+    <div v-if="chargement" class="conteneur-chargement">
+      <div class="spinner"></div>
+      <p>Génération du rapport...</p>
+    </div>
     
-    <div class="conteneur-rapport">
+    <div v-else-if="erreur" class="conteneur-erreur">
+      <p>{{ erreur }}</p>
+    </div>
+    
+    <template v-else>
+      <h1>Rapport de Sécurité</h1>
+      
+      <div class="conteneur-rapport">
       <section class="section-rapport">
         <h2>Présentation de l'entreprise</h2>
         <div class="carte-entreprise">
@@ -146,6 +159,11 @@ const obtenirCouleurCriticite = (valeur) => {
         </div>
       </section>
     </div>
+    </template>
+    
+    <button class="btn-exporter" @click="window.print()">
+      🖨️ Imprimer / Exporter en PDF
+    </button>
   </div>
 </template>
 
@@ -155,10 +173,11 @@ const obtenirCouleurCriticite = (valeur) => {
 }
 
 h1 {
-  color: #0f172a;
-  margin-bottom: 2rem;
-  font-size: 1.75rem;
+  color: var(--text-primary);
+  margin-bottom: 2.5rem;
+  font-size: 2rem;
   font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .conteneur-rapport {
@@ -168,24 +187,29 @@ h1 {
 }
 
 .section-rapport h2 {
-  color: #1e293b;
-  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+  margin: 0 0 1.5rem 0;
   font-size: 1.25rem;
   font-weight: 600;
 }
 
 .carte-entreprise {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  background: var(--bg-card);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-card);
+  transition: all var(--transition-normal);
+}
+
+.carte-entreprise:hover {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-glow);
 }
 
 .ligne-info {
   display: flex;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .ligne-info:last-child {
@@ -194,22 +218,28 @@ h1 {
 
 .ligne-info .label {
   width: 150px;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
 .ligne-info .valeur {
-  color: #0f172a;
+  color: var(--text-secondary);
   flex: 1;
 }
 
 .tableau-actifs,
 .tableau-vulnerabilites {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-card);
   overflow-x: auto;
+  transition: all var(--transition-normal);
+}
+
+.tableau-actifs:hover,
+.tableau-vulnerabilites:hover {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-glow);
 }
 
 table {
@@ -218,22 +248,24 @@ table {
 }
 
 thead {
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 th {
   text-align: left;
-  padding: 1rem;
-  color: #475569;
+  padding: 1rem 1.5rem;
+  color: var(--text-muted);
   font-weight: 600;
-  font-size: 0.9rem;
-  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-card);
 }
 
 td {
-  padding: 1rem;
-  color: #0f172a;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 1rem 1.5rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 tr:last-child td {
@@ -242,21 +274,44 @@ tr:last-child td {
 
 .badge-criticite {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
+  padding: 0.375rem 0.875rem;
+  border-radius: 20px;
   color: white;
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-faible {
+  background: var(--risk-low);
+}
+
+.badge-moyen {
+  background: var(--risk-medium);
+}
+
+.badge-eleve {
+  background: var(--risk-high);
+}
+
+.badge-critique {
+  background: var(--risk-critical);
 }
 
 .carte-risque {
-  background: white;
+  background: var(--bg-card);
   padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  border: 1px solid var(--border-card);
   display: flex;
   gap: 2rem;
+  transition: all var(--transition-normal);
+}
+
+.carte-risque:hover {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-glow);
 }
 
 .score-risque,
@@ -271,15 +326,18 @@ tr:last-child td {
 
 .label-score,
 .label-niveau {
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 0.9rem;
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .valeur-score {
-  font-size: 2.5rem;
+  font-size: 3rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
 
 .valeur-niveau {
@@ -291,11 +349,16 @@ tr:last-child td {
 }
 
 .carte-recommandations {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  background: var(--bg-card);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-card);
+  transition: all var(--transition-normal);
+}
+
+.carte-recommandations:hover {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-glow);
 }
 
 .carte-recommandations ul {
@@ -304,7 +367,7 @@ tr:last-child td {
 }
 
 .carte-recommandations li {
-  color: #475569;
+  color: var(--text-secondary);
   margin-bottom: 0.75rem;
   line-height: 1.6;
 }
@@ -316,6 +379,107 @@ tr:last-child td {
   
   .ligne-info .label {
     width: 120px;
+  }
+}
+
+.conteneur-chargement {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border-card);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.conteneur-erreur {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--risk-high);
+  border-radius: 12px;
+  padding: 2rem;
+  color: var(--risk-high);
+  text-align: center;
+}
+
+.btn-exporter {
+  margin-top: 2rem;
+  padding: 0.875rem 1.75rem;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-subtle);
+}
+
+.btn-exporter:hover {
+  background: var(--accent-secondary);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-1px);
+}
+
+.conteneur-chargement {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border-card);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.conteneur-erreur {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--risk-high);
+  border-radius: 12px;
+  padding: 2rem;
+  color: var(--risk-high);
+  text-align: center;
+}
+
+@media print {
+  .sidebar,
+  .btn-exporter {
+    display: none;
+  }
+  
+  .main-content {
+    padding: 0;
+  }
+  
+  .page-rapport {
+    padding: 0;
   }
 }
 </style>

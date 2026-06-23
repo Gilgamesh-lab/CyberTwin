@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { useAssetStore } from './assetStore'
 import { useVulnerabilityStore } from './vulnerabilityStore'
 import { useCompanyStore } from './companyStore'
+import { apiService } from '../services/apiService'
 
 export const useRiskStore = defineStore('risk', {
   state: () => ({
@@ -15,10 +16,44 @@ export const useRiskStore = defineStore('risk', {
       mediumVulnerabilities: 0,
       lowVulnerabilities: 0,
       exposedServices: 0
-    }
+    },
+    chargement: false,
+    erreur: null,
+    recommandations: []
   }),
   actions: {
-    calculateRisk() {
+    async calculerRisque() {
+      this.chargement = true
+      this.erreur = null
+      
+      const assetStore = useAssetStore()
+      const vulnerabilityStore = useVulnerabilityStore()
+      const companyStore = useCompanyStore()
+
+      const donnees = {
+        assets: assetStore.assets,
+        vulnerabilities: vulnerabilityStore.vulnerabilites,
+        company: companyStore.companyData
+      }
+
+      try {
+        const resultat = await apiService.calculerRisque(donnees)
+        this.riskScore = resultat.riskScore
+        this.riskLevel = resultat.riskLevel
+        this.metrics = resultat.metrics
+        this.recommandations = resultat.recommendations || []
+      } catch (erreur) {
+        this.erreur = 'Impossible de calculer le risque'
+        console.error('Erreur calcul risque:', erreur)
+        
+        // Fallback en mode local si l'API ne répond pas
+        this.calculateRiskLocal()
+      } finally {
+        this.chargement = false
+      }
+    },
+
+    calculateRiskLocal() {
       const assetStore = useAssetStore()
       const vulnerabilityStore = useVulnerabilityStore()
       const companyStore = useCompanyStore()
@@ -69,6 +104,7 @@ export const useRiskStore = defineStore('risk', {
         lowVulnerabilities: criticiteFaible,
         exposedServices: exposedServicesCount
       }
+      this.recommandations = this.getRecommendations()
     },
 
     getRiskLevelLabel() {
@@ -90,6 +126,10 @@ export const useRiskStore = defineStore('risk', {
     },
 
     getRecommendations() {
+      if (this.recommandations.length > 0) {
+        return this.recommandations
+      }
+
       const recommendations = []
       const metrics = this.metrics
 
