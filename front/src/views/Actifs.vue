@@ -88,6 +88,7 @@ const openEditModal = (asset) => {
   isEditing.value = true
   editingAssetId.value = asset.id
   formData.value = {
+    id: asset.id_actif,
     name: asset.name,
     type: asset.type,
     description: asset.description || '',
@@ -116,7 +117,8 @@ const handleSubmit = async () => {
     
     try {
       if (isEditing.value) {
-        await assetStore.modifierActif(editingAssetId.value, formData.value)
+        console.log("lol : " + formData.value.id)
+        await assetStore.modifierActif(formData.value.id, formData.value)
       } else {
         await assetStore.ajouterActif(formData.value)
       }
@@ -194,7 +196,7 @@ const getCriticalityLabel = (criticality) => {
               <button @click="openEditModal(asset)" class="btn-edit" title="Modifier">
                 ✏️
               </button>
-              <button @click="handleDelete(asset.id)" class="btn-delete" title="Supprimer">
+              <button @click="handleDelete(asset.id_actif)" class="btn-delete" title="Supprimer">
                 🗑️
               </button>
             </td>

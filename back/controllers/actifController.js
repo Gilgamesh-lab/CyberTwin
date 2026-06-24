@@ -40,3 +40,37 @@ exports.addActif = (req, res) => {
         }
     );
 };
+
+
+exports.modifierActif = (req, res) => {
+    const id = req.params.id;
+    const {name, type, criticality, ipAddress, description, exposition_internet} = req.body;
+    db.query(
+        "UPDATE actifs SET name = ?, type = ?, criticality = ?, ipAddress = ?, description = ?, exposition_internet = ? WHERE id_actif  =  ?",
+        [name, type, criticality, ipAddress, description, exposition_internet, id],
+    (err, result) => {
+        if(err){
+         return res.status(500).json(err);
+        }
+        res.status(201).json({
+            message: "Actifs mis à jour"
+        });
+        }
+    );
+};
+
+
+exports.supprimeActif = (req, res) => {
+    const id = req.params.id;
+    db.query(
+        'DELETE FROM actifs WHERE id_actif = ' + id,
+    (err, result) => {
+        if(err){
+         return res.status(500).json(err);
+        }
+        res.status(201).json({
+            message: "Actif supprimé"
+        });
+        }
+    );
+};

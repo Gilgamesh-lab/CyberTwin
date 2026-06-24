@@ -42,14 +42,14 @@ export const apiService = {
   },
 
   async modifierActif(id, donnees) {
-    return requeteAPI(`/assets/${id}`, {
+    return requeteAPI(`/actifs/modifierActif/${id}`, {
       method: 'PUT',
       body: JSON.stringify(donnees)
     })
   },
 
   async supprimerActif(id) {
-    return requeteAPI(`/assets/${id}`, {
+    return requeteAPI(`/actifs/supprimerActif/${id}`, {
       method: 'DELETE'
     })
   },
@@ -66,14 +66,14 @@ export const apiService = {
   },
 
   async modifierVulnerabilite(id, donnees) {
-    return requeteAPI(`/vulnerabilities/${id}`, {
+    return requeteAPI(`/vulnerabilite/modifierVulnerabilite/${id}`, {
       method: 'PUT',
       body: JSON.stringify(donnees)
     })
   },
 
   async supprimerVulnerabilite(id) {
-    return requeteAPI(`/vulnerabilities/${id}`, {
+    return requeteAPI(`/vulnerabilite/supprimerVulnerabilite/${id}`, {
       method: 'DELETE'
     })
   },

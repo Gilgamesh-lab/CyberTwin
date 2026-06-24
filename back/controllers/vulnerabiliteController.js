@@ -28,3 +28,35 @@ exports.getVulnerabilite = (req, res) => {
         }
     );
 };
+
+exports.modifierVulnerabilite = (req, res) => {
+    const id = req.params.id;
+    const {id_actif,cve, description, score_cvss, statut, date_detection} = req.body;
+    db.query(
+        "UPDATE vulnerabilite SET id_actif = ?, cve = ?, description = ?, score_cvss = ?, statut = ? WHERE id_vulnerabilite  =  ?",
+        [id_actif, cve, description, score_cvss, statut, id],
+    (err, result) => {
+        if(err){
+         return res.status(500).json(err);
+        }
+        res.status(201).json({
+            message: "vulnerabilite mis à jour"
+        });
+        }
+    );
+};
+
+exports.supprimerVulnerabilite = (req, res) => {
+    const id = req.params.id;
+    db.query(
+        'DELETE FROM vulnerabilite WHERE id_vulnerabilite = ' + id,
+    (err, result) => {
+        if(err){
+         return res.status(500).json(err);
+        }
+        res.status(201).json({
+            message: "vulnerabilite supprimé"
+        });
+        }
+    );
+};

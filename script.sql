@@ -37,7 +37,7 @@ CREATE TABLE vulnerabilite (
     score_cvss DECIMAL(3,1),
     statut ENUM('Ouverte','En cours','Corrigée'),
     date_detection DATE,
-    FOREIGN KEY (id_actif) REFERENCES actifs(id_actif)
+    FOREIGN KEY (id_actif) REFERENCES actifs(id_actif) ON DELETE CASCADE
     
 );
 

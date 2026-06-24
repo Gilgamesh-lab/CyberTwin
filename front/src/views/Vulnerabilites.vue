@@ -82,7 +82,8 @@ const soumettreFormulaire = async () => {
   
   try {
     if (vulnerabiliteEnEdition.value) {
-      vulnerabilityStore.modifierVulnerabilite(vulnerabiliteEnEdition.value.id, donneesFormulaire.value)
+      console.log("yo : " + donneesFormulaire.value.id_vulnerabilite)
+      vulnerabilityStore.modifierVulnerabilite(donneesFormulaire.value.id_vulnerabilite, donneesFormulaire.value)
     } else {
       vulnerabilityStore.ajouterVulnerabilite(donneesFormulaire.value)
     }
@@ -179,7 +180,7 @@ onUnmounted(() => {
               <button class="btn-modifier" @click="ouvrirModal(vulnerabilite)" title="Modifier">
                 ✏️
               </button>
-              <button class="btn-supprimer" @click="supprimerVulnerabilite(vulnerabilite.id)" title="Supprimer">
+              <button class="btn-supprimer" @click="supprimerVulnerabilite(vulnerabilite.id_vulnerabilite)" title="Supprimer">
                 🗑️
               </button>
             </td>
