@@ -27,15 +27,15 @@ async function requeteAPI(endpoint, options = {}) {
 
 export const apiService = {
   async obtenirEntreprise() {
-    return requeteAPI('/company')
+    return requeteAPI('/company/getCompanies')
   },
 
   async obtenirActifs() {
-    return requeteAPI('/assets')
+    return requeteAPI('/actifs/getActifs')
   },
 
   async creerActif(donnees) {
-    return requeteAPI('/assets', {
+    return requeteAPI('/actifs/addActif', {
       method: 'POST',
       body: JSON.stringify(donnees)
     })
@@ -55,11 +55,11 @@ export const apiService = {
   },
 
   async obtenirVulnerabilites() {
-    return requeteAPI('/vulnerabilities')
+    return requeteAPI('/vulnerabilite/getVulnerabilite')
   },
 
   async creerVulnerabilite(donnees) {
-    return requeteAPI('/vulnerabilities', {
+    return requeteAPI('/vulnerabilite/addVulnerabilite', {
       method: 'POST',
       body: JSON.stringify(donnees)
     })
@@ -79,8 +79,8 @@ export const apiService = {
   },
 
   async mettreAJourEntreprise(donnees) {
-    return requeteAPI('/company', {
-      method: 'PUT',
+    return requeteAPI('/company/addCompany', {
+      method: 'POST',
       body: JSON.stringify(donnees)
     })
   },

@@ -22,6 +22,12 @@ const obtenirNomActif = (actifId) => {
   return actif ? actif.name : 'Actif inconnu'
 }
 
+
+const obtenirActif = (id_actif) => {
+  const actif = assetStore.obtenirParId(id_actif)
+  return actif ? actif : 'Actif inconnu'
+}
+
 const obtenirLabelCriticite = (valeur) => {
   const labels = {
     faible: 'Faible',
@@ -91,7 +97,7 @@ const obtenirCouleurCriticite = (valeur) => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="actif in assetStore.assets" :key="actif.id">
+              <tr v-for="actif in assetStore.assets" :key="actif.id_actif">
                 <td>{{ actif.name }}</td>
                 <td>{{ actif.type }}</td>
                 <td>{{ actif.ipAddress }}</td>
@@ -116,11 +122,11 @@ const obtenirCouleurCriticite = (valeur) => {
             </thead>
             <tbody>
               <tr v-for="vulnerabilite in vulnerabilityStore.vulnerabilites" :key="vulnerabilite.id">
-                <td>{{ obtenirNomActif(vulnerabilite.actifId) }}</td>
-                <td>{{ vulnerabilite.nom }}</td>
+                <td>{{ obtenirNomActif(vulnerabilite.id_actif) }}</td>
+                <td>{{ vulnerabilite.cve }}</td>
                 <td>
                   <span class="badge-criticite" :style="{ backgroundColor: obtenirCouleurCriticite(vulnerabilite.criticite) }">
-                    {{ obtenirLabelCriticite(vulnerabilite.criticite) }}
+                    {{ obtenirActif(vulnerabilite.id_actif).criticality }}
                   </span>
                 </td>
                 <td>{{ vulnerabilite.description || '-' }}</td>

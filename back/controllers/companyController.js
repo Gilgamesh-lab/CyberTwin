@@ -38,10 +38,10 @@ exports.getCompanyActifs = (req, res) => {
 };
 
 exports.addCompagny = (req, res) => {
-    const {nom, secteur_activite, nombre_employes, nombre_serveurs, nombre_postes_clients, services_exposes, gestion_vulnerabilites, risque_cyber} = req.body;
+    const {name, sector, employees, servers, workstations, exposedServices, gestion_vulnerabilites, risque_cyber} = req.body;
     db.query(
-        'INSERT INTO Entreprise(nom, secteur_activite, nombre_employes, nombre_serveurs, nombre_postes_clients, services_exposes, gestion_vulnerabilites, risque_cyber) VALUES(?,?,?,?,?,?,?,?)',
-        [nom, secteur_activite, nombre_employes, nombre_serveurs, nombre_postes_clients, services_exposes, gestion_vulnerabilites, risque_cyber],
+        'INSERT INTO Entreprise(name, sector, employees, servers, workstations, exposedServices, gestion_vulnerabilites, risque_cyber) VALUES(?,?,?,?,?,?,?,?)',
+        [name, sector, employees, servers, workstations, exposedServices, gestion_vulnerabilites, risque_cyber],
     (err, result) => {
         if(err){
          return res.status(500).json(err);

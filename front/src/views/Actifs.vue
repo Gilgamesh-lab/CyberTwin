@@ -254,7 +254,7 @@ const getCriticalityLabel = (criticality) => {
           <div class="form-group">
             <label for="criticality">Criticité</label>
             <select id="criticality" v-model="formData.criticality">
-              <option v-for="level in criticalityLevels" :key="level.value" :value="level.value">
+              <option v-for="level in criticalityLevels" :key="level.label" :value="level.label">
                 {{ level.label }}
               </option>
             </select>

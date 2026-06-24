@@ -32,6 +32,7 @@ export const useCompanyStore = defineStore('company', {
     
     updateCompany(data) {
       this.companyData = { ...this.companyData, ...data }
+      apiService.mettreAJourEntreprise(data)
     },
     
     resetCompany() {

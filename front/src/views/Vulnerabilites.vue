@@ -15,10 +15,10 @@ onMounted(() => {
 const afficherModal = ref(false)
 const vulnerabiliteEnEdition = ref(null)
 const donneesFormulaire = ref({
-  actifId: '',
-  nom: '',
+  id_actif: '',
+  cve: '',
   criticite: 'moyen',
-  description: ''
+  description: ""
 })
 
 const typesVulnerabilites = [
@@ -42,11 +42,11 @@ const erreurs = ref({})
 const validerFormulaire = () => {
   erreurs.value = {}
   
-  if (!donneesFormulaire.value.actifId) {
-    erreurs.value.actifId = 'L\'actif est requis'
+  if (!donneesFormulaire.value.id_actif) {
+    erreurs.value.id_actif = 'L\'actif est requis'
   }
   
-  if (!donneesFormulaire.value.nom.trim()) {
+  if (!donneesFormulaire.value.cve.trim()) {
     erreurs.value.nom = 'Le nom de la vulnérabilité est requis'
   }
   
@@ -60,10 +60,10 @@ const ouvrirModal = (vulnerabilite = null) => {
   } else {
     vulnerabiliteEnEdition.value = null
     donneesFormulaire.value = {
-      actifId: '',
-      nom: '',
+      id_actif: '',
+      cve: '',
       criticite: 'moyen',
-      description: ''
+      description: null
     }
   }
   afficherModal.value = true
@@ -101,9 +101,14 @@ const supprimerVulnerabilite = (id) => {
   }
 }
 
-const obtenirNomActif = (actifId) => {
-  const actif = assetStore.obtenirParId(actifId)
+const obtenirNomActif = (id_actif) => {
+  const actif = assetStore.obtenirParId(id_actif)
   return actif ? actif.name : 'Actif inconnu'
+}
+
+const obtenirActif = (id_actif) => {
+  const actif = assetStore.obtenirParId(id_actif)
+  return actif ? actif : 'Actif inconnu'
 }
 
 const obtenirLabelCriticite = (valeur) => {
@@ -123,7 +128,7 @@ const obtenirCouleurCriticite = (valeur) => {
 const vulnerabilitesAvecActifs = computed(() => {
   return vulnerabilityStore.vulnerabilites.map(v => ({
     ...v,
-    nomActif: obtenirNomActif(v.actifId)
+    nomActif: obtenirNomActif(v.id_actif)
   }))
 })
 
@@ -162,14 +167,14 @@ onUnmounted(() => {
         </thead>
         <tbody>
           <tr v-for="vulnerabilite in vulnerabilitesAvecActifs" :key="vulnerabilite.id">
-            <td>{{ vulnerabilite.nomActif }}</td>
-            <td>{{ vulnerabilite.nom }}</td>
+            <td>{{ obtenirNomActif(vulnerabilite.id_actif) }}</td>
+            <td>{{ vulnerabilite.cve }}</td>
             <td>
               <span class="badge-criticite" :style="{ backgroundColor: obtenirCouleurCriticite(vulnerabilite.criticite) }">
-                {{ obtenirLabelCriticite(vulnerabilite.criticite) }}
+                {{ obtenirActif(vulnerabilite.id_actif).criticality }}
               </span>
             </td>
-            <td>{{ vulnerabilite.description || '-' }}</td>
+            <td>{{ vulnerabilite.description}}</td>
             <td class="cellule-actions">
               <button class="btn-modifier" @click="ouvrirModal(vulnerabilite)" title="Modifier">
                 ✏️
@@ -194,25 +199,25 @@ onUnmounted(() => {
         </div>
         <form @submit.prevent="soumettreFormulaire" class="modal-form">
           <div class="form-group">
-            <label for="actifId">Actif *</label>
+            <label for="id_actif">Actif *</label>
             <select
-              id="actifId"
-              v-model="donneesFormulaire.actifId"
-              :class="{ 'error': erreurs.actifId }"
+              id="id_actif"
+              v-model="donneesFormulaire.id_actif"
+              :class="{ 'error': erreurs.id_actif }"
             >
               <option value="">Sélectionner un actif</option>
-              <option v-for="actif in assetStore.assets" :key="actif.id" :value="actif.id">
+              <option v-for="actif in assetStore.assets" :key="actif.id_actif" :value="actif.id_actif">
                 {{ actif.name }}
               </option>
             </select>
-            <span v-if="erreurs.actifId" class="error-message">{{ erreurs.actifId }}</span>
+            <span v-if="erreurs.id_actif" class="error-message">{{ erreurs.id_actif }}</span>
           </div>
 
           <div class="form-group">
             <label for="nom">Nom de la vulnérabilité *</label>
             <select
               id="nom"
-              v-model="donneesFormulaire.nom"
+              v-model="donneesFormulaire.cve"
               :class="{ 'error': erreurs.nom }"
             >
               <option value="">Sélectionner un type</option>

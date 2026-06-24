@@ -75,7 +75,7 @@ export const useAssetStore = defineStore('asset', {
     },
     
     obtenirParId(id) {
-      return this.assets.find(a => a.id === id)
+      return this.assets.find(a => a.id_actif === id)
     }
   }
 })

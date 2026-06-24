@@ -74,9 +74,10 @@ const validateForm = () => {
 const handleSubmit = async () => {
   if (validateForm()) {
     try {
-      await companyStore.mettreAJourEntreprise(formData.value)
+      await companyStore.updateCompany(formData.value)
       alert('Informations de l\'entreprise enregistrées avec succès!')
     } catch (erreur) {
+      console.log(erreur)
       alert('Erreur lors de l\'enregistrement des informations')
     }
   }

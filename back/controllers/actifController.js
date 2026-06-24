@@ -25,15 +25,18 @@ exports.getActif = (req, res) => {
     );
 };
 
-exports.getActifVulnerabilite = (req, res) => {
-    const id = req.params.id;
+exports.addActif = (req, res) => {
+    const {name, type, criticality, ipAddress, description, exposition_internet} = req.body;
     db.query(
-        'SELECT * FROM vulnerabilite where id_actif = ' + id,
-        (err, results) => {
-            if(err){
-                return res.status(500).json(err);
-            }
-            res.json(results);
+        'INSERT INTO actifs(name, type, criticality,ipAddress,description, exposition_internet) VALUES(?,?,?,?, ?)',
+        [name, type, criticality, ipAddress, description, exposition_internet],
+    (err, result) => {
+        if(err){
+         return res.status(500).json(err);
+        }
+        res.status(201).json({
+            message: "Actif ajouté"
+        });
         }
     );
 };
