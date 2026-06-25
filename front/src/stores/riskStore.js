@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import { defineStore, acceptHMRUpdate } from 'pinia'
 import { useAssetStore } from './assetStore'
 import { useVulnerabilityStore } from './vulnerabilityStore'
 import { useCompanyStore } from './companyStore'
@@ -136,3 +136,7 @@ export const useRiskStore = defineStore('risk', {
     }
   }
 })
+
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(useRiskStore, import.meta.hot))
+}

@@ -14,16 +14,34 @@ const companyStore = useCompanyStore()
 const chartCanvas = ref(null)
 let chartInstance = null
 
-onMounted(async () => {
-  await assetStore.chargerActifs()
-  await vulnerabilityStore.chargerVulnerabilites()
-  await companyStore.chargerEntreprise()
+const chargerDonneesEntreprise = async (companyId) => {
+  await assetStore.chargerActifs(companyId)
+  await vulnerabilityStore.chargerVulnerabilites(companyId)
   await riskStore.calculerRisque()
-  
-  // Attendre que le DOM soit mis à jour avant de créer le graphique
+
+  // Recréer le graphique avec les nouvelles données
+  if (chartInstance) {
+    chartInstance.destroy()
+    chartInstance = null
+  }
   setTimeout(() => {
     creerGraphique()
   }, 100)
+}
+
+const changerEntreprise = async (event) => {
+  const id = Number(event.target.value)
+  const company = companyStore.companies.find(c => c.id_entreprise === id)
+  if (company) {
+    companyStore.selectionnerEntreprise(company)
+    await chargerDonneesEntreprise(id)
+  }
+}
+
+onMounted(async () => {
+  await companyStore.chargerEntreprise()
+  const companyId = companyStore.companyData?.id_entreprise
+  await chargerDonneesEntreprise(companyId)
 })
 
 const creerGraphique = () => {
@@ -82,8 +100,22 @@ const creerGraphique = () => {
     </div>
     
     <template v-else>
-      <h1>Tableau de bord</h1>
-    
+      <div class="en-tete-dashboard">
+        <h1>Tableau de bord</h1>
+        <div class="selecteur-entreprise" v-if="companyStore.companies.length">
+          <label for="select-entreprise">🏢 Entreprise :</label>
+          <select
+            id="select-entreprise"
+            :value="companyStore.companyData?.id_entreprise"
+            @change="changerEntreprise"
+          >
+            <option v-for="company in companyStore.companies" :key="company.id_entreprise" :value="company.id_entreprise">
+              {{ company.name }}
+            </option>
+          </select>
+        </div>
+      </div>
+
       <div class="grille-metriques">
         <div class="carte-metrique">
           <div class="icone-metrique">💻</div>
@@ -172,12 +204,52 @@ const creerGraphique = () => {
   width: 100%;
 }
 
+.en-tete-dashboard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
 h1 {
   color: var(--text-primary);
-  margin-bottom: 2.5rem;
+  margin: 0;
   font-size: 2rem;
   font-weight: 600;
   letter-spacing: -0.02em;
+}
+
+.selecteur-entreprise {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.selecteur-entreprise label {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.selecteur-entreprise select {
+  padding: 0.625rem 1rem;
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.selecteur-entreprise select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .grille-metriques {

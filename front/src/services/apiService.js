@@ -2,7 +2,7 @@ const API_BASE_URL = 'http://localhost:3000/api'
 
 async function requeteAPI(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`
-  
+
   const config = {
     headers: {
       'Content-Type': 'application/json',
@@ -13,11 +13,11 @@ async function requeteAPI(endpoint, options = {}) {
 
   try {
     const reponse = await fetch(url, config)
-    
+
     if (!reponse.ok) {
       throw new Error(`Erreur HTTP: ${reponse.status}`)
     }
-    
+
     return await reponse.json()
   } catch (erreur) {
     console.error('Erreur API:', erreur)
@@ -30,8 +30,26 @@ export const apiService = {
     return requeteAPI('/company/getCompanies')
   },
 
+  async creerEntreprise(donnees) {
+    return requeteAPI('/company/addCompany', {
+      method: 'POST',
+      body: JSON.stringify(donnees)
+    })
+  },
+
+  async mettreAJourEntreprise(id, donnees) {
+    return requeteAPI(`/company/updateCompany/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(donnees)
+    })
+  },
+
   async obtenirActifs() {
     return requeteAPI('/actifs/getActifs')
+  },
+
+  async obtenirActifsParEntreprise(id) {
+    return requeteAPI(`/company/getCompanyActifs/${id}`)
   },
 
   async creerActif(donnees) {
@@ -58,6 +76,10 @@ export const apiService = {
     return requeteAPI('/vulnerabilite/getVulnerabilite')
   },
 
+  async obtenirVulnerabilitesByEntreprise(id) {
+    return requeteAPI(`/vulnerabilite/getVulnerabilitesByEntreprise/${id}`)
+  },
+
   async creerVulnerabilite(donnees) {
     return requeteAPI('/vulnerabilite/addVulnerabilite', {
       method: 'POST',
@@ -75,20 +97,6 @@ export const apiService = {
   async supprimerVulnerabilite(id) {
     return requeteAPI(`/vulnerabilite/supprimerVulnerabilite/${id}`, {
       method: 'DELETE'
-    })
-  },
-
-  async mettreAJourEntreprise(donnees) {
-    return requeteAPI('/company/addCompany', {
-      method: 'POST',
-      body: JSON.stringify(donnees)
-    })
-  },
-
-  async calculerRisque(donnees) {
-    return requeteAPI('/risk/calculate', {
-      method: 'POST',
-      body: JSON.stringify(donnees)
     })
   }
 }

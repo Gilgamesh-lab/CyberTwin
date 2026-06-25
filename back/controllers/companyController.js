@@ -1,4 +1,5 @@
 const db = require('../config/database');
+
 exports.getCompanies = (req, res) => {
     db.query(
         'SELECT * FROM Entreprise',
@@ -9,9 +10,8 @@ exports.getCompanies = (req, res) => {
             const parsedResults = results.map(company => {
                 if (company.exposedServices && typeof company.exposedServices === 'string') {
                     company.exposedServices = company.exposedServices.split(', ').filter(s => s);
-                }
-                if (company.services_exposes && typeof company.services_exposes === 'string') {
-                    company.services_exposes = company.services_exposes.split(', ').filter(s => s);
+                } else if (!company.exposedServices) {
+                    company.exposedServices = [];
                 }
                 return company;
             });
@@ -23,7 +23,8 @@ exports.getCompanies = (req, res) => {
 exports.getCompany = (req, res) => {
     const id = req.params.id;
     db.query(
-        'SELECT * FROM Entreprise where id_entreprise = ' + id,
+        'SELECT * FROM Entreprise WHERE id_entreprise = ?',
+        [id],
         (err, results) => {
             if(err){
                 return res.status(500).json(err);
@@ -31,9 +32,8 @@ exports.getCompany = (req, res) => {
             const parsedResults = results.map(company => {
                 if (company.exposedServices && typeof company.exposedServices === 'string') {
                     company.exposedServices = company.exposedServices.split(', ').filter(s => s);
-                }
-                if (company.services_exposes && typeof company.services_exposes === 'string') {
-                    company.services_exposes = company.services_exposes.split(', ').filter(s => s);
+                } else if (!company.exposedServices) {
+                    company.exposedServices = [];
                 }
                 return company;
             });
@@ -45,7 +45,8 @@ exports.getCompany = (req, res) => {
 exports.getCompanyActifs = (req, res) => {
     const id = req.params.id;
     db.query(
-        'SELECT * FROM actifs where id_entreprise = ' + id,
+        'SELECT * FROM actifs WHERE id_entreprise = ?',
+        [id],
         (err, results) => {
             if(err){
                 return res.status(500).json(err);
@@ -56,36 +57,37 @@ exports.getCompanyActifs = (req, res) => {
 };
 
 exports.addCompagny = (req, res) => {
-    const {name, sector, employees, servers, workstations, exposedServices, gestion_vulnerabilites, risque_cyber} = req.body;
-    const servicesString = Array.isArray(exposedServices) ? exposedServices.join(', ') : '';
+    const {name, sector, employees, servers, workstations, exposedServices} = req.body;
+    const servicesString = Array.isArray(exposedServices) ? exposedServices.join(', ') : (exposedServices || '');
     db.query(
-        'INSERT INTO Entreprise(name, sector, employees, servers, workstations, exposedServices, gestion_vulnerabilites, risque_cyber) VALUES(?,?,?,?,?,?,?,?)',
-        [name, sector, employees, servers, workstations, servicesString, gestion_vulnerabilites, risque_cyber],
-    (err, result) => {
-        if(err){
-         return res.status(500).json(err);
-        }
-        res.status(201).json({
-            message: "Entreprise ajouté"
-        });
+        'INSERT INTO Entreprise(name, sector, employees, servers, workstations, exposedServices) VALUES(?,?,?,?,?,?)',
+        [name, sector, employees, servers, workstations, servicesString],
+        (err, result) => {
+            if(err){
+                return res.status(500).json(err);
+            }
+            res.status(201).json({
+                message: "Entreprise ajoutée",
+                id: result.insertId
+            });
         }
     );
 };
 
 exports.updateCompagny = (req, res) => {
     const id = req.params.id;
-    const {nom, secteur_activite, nombre_employes, nombre_serveurs, nombre_postes_clients, services_exposes, gestion_vulnerabilites, risque_cyber} = req.body;
-    const servicesString = Array.isArray(services_exposes) ? services_exposes.join(', ') : '';
+    const {name, sector, employees, servers, workstations, exposedServices} = req.body;
+    const servicesString = Array.isArray(exposedServices) ? exposedServices.join(', ') : (exposedServices || '');
     db.query(
-        "UPDATE Entreprise SET nom = ?, secteur_activite = ?, nombre_employes = ?, nombre_serveurs = ?, nombre_postes_clients = ?, services_exposes = ?, gestion_vulnerabilites = ?, risque_cyber = ? WHERE id_entreprise  =  ?",
-        [nom, secteur_activite, nombre_employes, nombre_serveurs, nombre_postes_clients, servicesString, gestion_vulnerabilites, risque_cyber, id],
-    (err, result) => {
-        if(err){
-         return res.status(500).json(err);
-        }
-        res.status(201).json({
-            message: "Entreprise mis à jour"
-        });
+        'UPDATE Entreprise SET name = ?, sector = ?, employees = ?, servers = ?, workstations = ?, exposedServices = ? WHERE id_entreprise = ?',
+        [name, sector, employees, servers, workstations, servicesString, id],
+        (err, result) => {
+            if(err){
+                return res.status(500).json(err);
+            }
+            res.status(200).json({
+                message: "Entreprise mise à jour"
+            });
         }
     );
 };

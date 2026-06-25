@@ -2,23 +2,20 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useVulnerabilityStore } from '../stores/vulnerabilityStore'
 import { useAssetStore } from '../stores/assetStore'
+import { useCompanyStore } from '../stores/companyStore'
 
 const vulnerabilityStore = useVulnerabilityStore()
 const assetStore = useAssetStore()
+const companyStore = useCompanyStore()
 const soumissionEnCours = ref(false)
-
-onMounted(() => {
-  assetStore.chargerActifs()
-  vulnerabilityStore.chargerVulnerabilites()
-})
 
 const afficherModal = ref(false)
 const vulnerabiliteEnEdition = ref(null)
 const donneesFormulaire = ref({
   id_actif: '',
-  cve: '',
-  criticite: 'moyen',
-  description: ""
+  type_vulnerabilite: '',
+  criticality: 'Moyen',
+  description: ''
 })
 
 const typesVulnerabilites = [
@@ -32,38 +29,45 @@ const typesVulnerabilites = [
 ]
 
 const niveauxCriticite = [
-  { valeur: 'faible', label: 'Faible' },
-  { valeur: 'moyen', label: 'Moyen' },
-  { valeur: 'eleve', label: 'Élevé' }
+  { valeur: 'Faible', label: 'Faible' },
+  { valeur: 'Moyen', label: 'Moyen' },
+  { valeur: 'Élevé', label: 'Élevé' },
+  { valeur: 'Critique', label: 'Critique' }
 ]
 
 const erreurs = ref({})
 
 const validerFormulaire = () => {
   erreurs.value = {}
-  
+
   if (!donneesFormulaire.value.id_actif) {
     erreurs.value.id_actif = 'L\'actif est requis'
   }
-  
-  if (!donneesFormulaire.value.cve.trim()) {
-    erreurs.value.nom = 'Le nom de la vulnérabilité est requis'
+
+  if (!donneesFormulaire.value.type_vulnerabilite) {
+    erreurs.value.type_vulnerabilite = 'Le type de vulnérabilité est requis'
   }
-  
+
   return Object.keys(erreurs.value).length === 0
 }
 
 const ouvrirModal = (vulnerabilite = null) => {
   if (vulnerabilite) {
     vulnerabiliteEnEdition.value = vulnerabilite
-    donneesFormulaire.value = { ...vulnerabilite }
+    donneesFormulaire.value = {
+      id_actif: vulnerabilite.id_actif,
+      type_vulnerabilite: vulnerabilite.type_vulnerabilite,
+      criticality: vulnerabilite.criticality || 'Moyen',
+      description: vulnerabilite.description || '',
+      id_vulnerabilite: vulnerabilite.id_vulnerabilite
+    }
   } else {
     vulnerabiliteEnEdition.value = null
     donneesFormulaire.value = {
       id_actif: '',
-      cve: '',
-      description: '',
-      criticality: 'moyen'
+      type_vulnerabilite: '',
+      criticality: 'Moyen',
+      description: ''
     }
   }
   afficherModal.value = true
@@ -85,7 +89,10 @@ const soumettreFormulaire = async () => {
       console.log("yo : " + donneesFormulaire.value.id_vulnerabilite)
       vulnerabilityStore.modifierVulnerabilite(donneesFormulaire.value.id_vulnerabilite, donneesFormulaire.value)
     } else {
-      vulnerabilityStore.ajouterVulnerabilite(donneesFormulaire.value)
+      vulnerabilityStore.ajouterVulnerabilite({
+        ...donneesFormulaire.value,
+        id_entreprise: companyStore.companyData?.id_entreprise || null
+      })
     }
     
     fermerModal()
@@ -157,7 +164,13 @@ const gererToucheEchap = (event) => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  if (!companyStore.companies.length) {
+    await companyStore.chargerEntreprise()
+  }
+  const companyId = companyStore.companyData?.id_entreprise
+  assetStore.chargerActifs(companyId)
+  vulnerabilityStore.chargerVulnerabilites(companyId)
   document.addEventListener('keydown', gererToucheEchap)
 })
 
@@ -169,8 +182,16 @@ onUnmounted(() => {
 <template>
   <div class="page-vulnerabilites">
     <div class="en-tete-page">
-      <h1>Vulnérabilités</h1>
-      <button class="btn-principal" @click="ouvrirModal()">+ Ajouter une vulnérabilité</button>
+      <div>
+        <h1>Vulnérabilités</h1>
+        <p v-if="companyStore.companyData" class="entreprise-selectionnee">
+          🏢 {{ companyStore.companyData.name }}
+        </p>
+        <p v-else class="entreprise-selectionnee avertissement">
+          ⚠️ Aucune entreprise sélectionnée — allez sur la page Entreprise
+        </p>
+      </div>
+      <button class="btn-principal" @click="ouvrirModal()" :disabled="!companyStore.companyData">+ Ajouter une vulnérabilité</button>
     </div>
 
     <div class="conteneur-tableau">
@@ -185,9 +206,9 @@ onUnmounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="vulnerabilite in vulnerabilitesAvecActifs" :key="vulnerabilite.id">
+          <tr v-for="vulnerabilite in vulnerabilitesAvecActifs" :key="vulnerabilite.id_vulnerabilite">
             <td>{{ obtenirNomActif(vulnerabilite.id_actif) }}</td>
-            <td>{{ vulnerabilite.cve }}</td>
+            <td>{{ vulnerabilite.type_vulnerabilite }}</td>
             <td>
               <span class="badge-criticite" :style="{ backgroundColor: obtenirCouleurCriticite(vulnerabilite.criticality) }">
                 {{ obtenirLabelCriticite(vulnerabilite.criticality) }}
@@ -233,23 +254,23 @@ onUnmounted(() => {
           </div>
 
           <div class="form-group">
-            <label for="nom">Nom de la vulnérabilité *</label>
+            <label for="type_vulnerabilite">Type de vulnérabilité *</label>
             <select
-              id="nom"
-              v-model="donneesFormulaire.cve"
-              :class="{ 'error': erreurs.nom }"
+              id="type_vulnerabilite"
+              v-model="donneesFormulaire.type_vulnerabilite"
+              :class="{ 'error': erreurs.type_vulnerabilite }"
             >
               <option value="">Sélectionner un type</option>
               <option v-for="type in typesVulnerabilites" :key="type" :value="type">
                 {{ type }}
               </option>
             </select>
-            <span v-if="erreurs.nom" class="error-message">{{ erreurs.nom }}</span>
+            <span v-if="erreurs.type_vulnerabilite" class="error-message">{{ erreurs.type_vulnerabilite }}</span>
           </div>
 
           <div class="form-group">
-            <label for="criticite">Criticité</label>
-            <select id="criticite" v-model="donneesFormulaire.criticality">
+            <label for="criticality">Criticité</label>
+            <select id="criticality" v-model="donneesFormulaire.criticality">
               <option v-for="niveau in niveauxCriticite" :key="niveau.valeur" :value="niveau.valeur">
                 {{ niveau.label }}
               </option>
@@ -285,8 +306,18 @@ onUnmounted(() => {
 .en-tete-page {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 2.5rem;
+}
+
+.entreprise-selectionnee {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.entreprise-selectionnee.avertissement {
+  color: var(--risk-medium);
 }
 
 h1 {

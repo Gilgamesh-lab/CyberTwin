@@ -1,8 +1,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAssetStore } from '../stores/assetStore'
+import { useCompanyStore } from '../stores/companyStore'
 
 const assetStore = useAssetStore()
+const companyStore = useCompanyStore()
 
 const showModal = ref(false)
 const isEditing = ref(false)
@@ -14,11 +16,15 @@ const formData = ref({
   type: '',
   description: '',
   ipAddress: '',
-  criticality: 'medium'
+  criticality: 'Moyen'
 })
 
-onMounted(() => {
-  assetStore.chargerActifs()
+onMounted(async () => {
+  if (!companyStore.companies.length) {
+    await companyStore.chargerEntreprise()
+  }
+  const companyId = companyStore.companyData?.id_entreprise
+  assetStore.chargerActifs(companyId)
   document.addEventListener('keydown', gererToucheEchap)
 })
 
@@ -42,10 +48,10 @@ const assetTypes = [
 ]
 
 const criticalityLevels = [
-  { value: 'faible', label: 'Faible' },
-  { value: 'moyen', label: 'Moyen' },
-  { value: 'eleve', label: 'Élevé' },
-  { value: 'critique', label: 'Critique' }
+  { value: 'Faible', label: 'Faible' },
+  { value: 'Moyen', label: 'Moyen' },
+  { value: 'Élevé', label: 'Élevé' },
+  { value: 'Critique', label: 'Critique' }
 ]
 
 const errors = ref({})
@@ -86,14 +92,14 @@ const openAddModal = () => {
 
 const openEditModal = (asset) => {
   isEditing.value = true
-  editingAssetId.value = asset.id
+  editingAssetId.value = asset.id_actif
   formData.value = {
     id: asset.id_actif,
     name: asset.name,
     type: asset.type,
     description: asset.description || '',
     ipAddress: asset.ipAddress || '',
-    criticality: asset.criticality || 'medium'
+    criticality: asset.criticality || 'Moyen'
   }
   errors.value = {}
   showModal.value = true
@@ -124,7 +130,10 @@ const handleSubmit = async () => {
         alert('Actif modifié avec succès!')
       } else {
         console.log('Ajout nouvel actif')
-        await assetStore.ajouterActif(formData.value)
+        await assetStore.ajouterActif({
+          ...formData.value,
+          id_entreprise: companyStore.companyData?.id_entreprise || null
+        })
         alert('Actif ajouté avec succès!')
       }
       closeModal()
@@ -187,8 +196,16 @@ const getCriticalityLabel = (criticality) => {
 <template>
   <div class="page-actifs">
     <div class="en-tete-page">
-      <h1>Actifs</h1>
-      <button class="btn-principal" @click="openAddModal">+ Ajouter un actif</button>
+      <div>
+        <h1>Actifs</h1>
+        <p v-if="companyStore.companyData" class="entreprise-selectionnee">
+          🏢 {{ companyStore.companyData.name }}
+        </p>
+        <p v-else class="entreprise-selectionnee avertissement">
+          ⚠️ Aucune entreprise sélectionnée — allez sur la page Entreprise
+        </p>
+      </div>
+      <button class="btn-principal" @click="openAddModal" :disabled="!companyStore.companyData">+ Ajouter un actif</button>
     </div>
 
     <div class="conteneur-tableau">
@@ -204,7 +221,7 @@ const getCriticalityLabel = (criticality) => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="asset in assetStore.assets" :key="asset.id">
+          <tr v-for="asset in assetStore.assets" :key="asset.id_actif">
             <td>{{ asset.name }}</td>
             <td>{{ asset.type }}</td>
             <td>{{ asset.ipAddress || '-' }}</td>
@@ -318,8 +335,18 @@ const getCriticalityLabel = (criticality) => {
 .en-tete-page {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 2.5rem;
+}
+
+.entreprise-selectionnee {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.entreprise-selectionnee.avertissement {
+  color: var(--risk-medium);
 }
 
 h1 {

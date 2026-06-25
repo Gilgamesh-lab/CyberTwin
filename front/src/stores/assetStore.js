@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import { defineStore, acceptHMRUpdate } from 'pinia'
 import { apiService } from '../services/apiService'
 
 export const useAssetStore = defineStore('asset', {
@@ -8,12 +8,14 @@ export const useAssetStore = defineStore('asset', {
     erreur: null
   }),
   actions: {
-    async chargerActifs() {
+    async chargerActifs(companyId = null) {
       this.chargement = true
       this.erreur = null
-      
+
       try {
-        const donnees = await apiService.obtenirActifs()
+        const donnees = companyId
+          ? await apiService.obtenirActifsParEntreprise(companyId)
+          : await apiService.obtenirActifs()
         this.assets = donnees
       } catch (erreur) {
         this.erreur = 'Impossible de charger les actifs'
@@ -22,18 +24,14 @@ export const useAssetStore = defineStore('asset', {
         this.chargement = false
       }
     },
-    
+
     async ajouterActif(actif) {
       this.chargement = true
       this.erreur = null
-      
+
       try {
         const reponse = await apiService.creerActif(actif)
-        const nouvelActif = {
-          ...actif,
-          id: reponse.id,
-          id_actif: reponse.id
-        }
+        const nouvelActif = { ...actif, id_actif: reponse.id }
         this.assets.push(nouvelActif)
       } catch (erreur) {
         this.erreur = 'Impossible d\'ajouter l\'actif'
@@ -43,11 +41,11 @@ export const useAssetStore = defineStore('asset', {
         this.chargement = false
       }
     },
-    
+
     async modifierActif(id, donnees) {
       this.chargement = true
       this.erreur = null
-      
+
       try {
         await apiService.modifierActif(id, donnees)
         const index = this.assets.findIndex(a => a.id_actif === id)
@@ -62,11 +60,11 @@ export const useAssetStore = defineStore('asset', {
         this.chargement = false
       }
     },
-    
+
     async supprimerActif(id) {
       this.chargement = true
       this.erreur = null
-      
+
       try {
         await apiService.supprimerActif(id)
         this.assets = this.assets.filter(a => a.id_actif !== id)
@@ -78,9 +76,13 @@ export const useAssetStore = defineStore('asset', {
         this.chargement = false
       }
     },
-    
+
     obtenirParId(id) {
       return this.assets.find(a => a.id_actif === id)
     }
   }
 })
+
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(useAssetStore, import.meta.hot))
+}

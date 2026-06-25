@@ -10,11 +10,25 @@ const assetStore = useAssetStore()
 const vulnerabilityStore = useVulnerabilityStore()
 const companyStore = useCompanyStore()
 
-onMounted(async () => {
-  await assetStore.chargerActifs()
-  await vulnerabilityStore.chargerVulnerabilites()
-  await companyStore.chargerEntreprise()
+const chargerDonneesEntreprise = async (companyId) => {
+  await assetStore.chargerActifs(companyId)
+  await vulnerabilityStore.chargerVulnerabilites(companyId)
   await riskStore.calculerRisque()
+}
+
+const changerEntreprise = async (event) => {
+  const id = Number(event.target.value)
+  const company = companyStore.companies.find(c => c.id_entreprise === id)
+  if (company) {
+    companyStore.selectionnerEntreprise(company)
+    await chargerDonneesEntreprise(id)
+  }
+}
+
+onMounted(async () => {
+  await companyStore.chargerEntreprise()
+  const companyId = companyStore.companyData?.id_entreprise
+  await chargerDonneesEntreprise(companyId)
 })
 
 const obtenirNomActif = (actifId) => {
@@ -67,27 +81,41 @@ const obtenirCouleurCriticite = (valeur) => {
     </div>
     
     <template v-else>
-      <h1>Rapport de Sécurité</h1>
-      
+      <div class="en-tete-rapport">
+        <h1>Rapport de Sécurité</h1>
+        <div class="selecteur-entreprise" v-if="companyStore.companies.length">
+          <label for="select-entreprise-rapport">🏢 Entreprise :</label>
+          <select
+            id="select-entreprise-rapport"
+            :value="companyStore.companyData?.id_entreprise"
+            @change="changerEntreprise"
+          >
+            <option v-for="company in companyStore.companies" :key="company.id_entreprise" :value="company.id_entreprise">
+              {{ company.name }}
+            </option>
+          </select>
+        </div>
+      </div>
+
       <div class="conteneur-rapport">
       <section class="section-rapport">
         <h2>Présentation de l'entreprise</h2>
         <div class="carte-entreprise">
           <div class="ligne-info">
             <span class="label">Nom :</span>
-            <span class="valeur">{{ companyStore.companyData.name }}</span>
+            <span class="valeur">{{ companyStore.companyData?.name || '-' }}</span>
           </div>
           <div class="ligne-info">
             <span class="label">Secteur :</span>
-            <span class="valeur">{{ companyStore.companyData.sector }}</span>
+            <span class="valeur">{{ companyStore.companyData?.sector || '-' }}</span>
           </div>
           <div class="ligne-info">
             <span class="label">Effectif :</span>
-            <span class="valeur">{{ companyStore.companyData.employees }} employés</span>
+            <span class="valeur">{{ companyStore.companyData?.employees ?? '-' }} employés</span>
           </div>
           <div class="ligne-info">
             <span class="label">Services exposés :</span>
-            <span class="valeur">{{ Array.isArray(companyStore.companyData.exposedServices) ? companyStore.companyData.exposedServices.join(', ') : companyStore.companyData.exposedServices || '-' }}</span>
+            <span class="valeur">{{ Array.isArray(companyStore.companyData?.exposedServices) ? companyStore.companyData.exposedServices.join(', ') : (companyStore.companyData?.exposedServices || '-') }}</span>
           </div>
         </div>
       </section>
@@ -129,9 +157,9 @@ const obtenirCouleurCriticite = (valeur) => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="vulnerabilite in vulnerabilityStore.vulnerabilites" :key="vulnerabilite.id">
+              <tr v-for="vulnerabilite in vulnerabilityStore.vulnerabilites" :key="vulnerabilite.id_vulnerabilite">
                 <td>{{ obtenirNomActif(vulnerabilite.id_actif) }}</td>
-                <td>{{ vulnerabilite.cve }}</td>
+                <td>{{ vulnerabilite.type_vulnerabilite }}</td>
                 <td>
                   <span class="badge-criticite" :style="{ backgroundColor: obtenirCouleurCriticite(vulnerabilite.criticality) }">
                     {{ obtenirLabelCriticite(vulnerabilite.criticality) }}
@@ -186,12 +214,52 @@ const obtenirCouleurCriticite = (valeur) => {
   width: 100%;
 }
 
+.en-tete-rapport {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
 h1 {
   color: var(--text-primary);
-  margin-bottom: 2.5rem;
+  margin: 0;
   font-size: 2rem;
   font-weight: 600;
   letter-spacing: -0.02em;
+}
+
+.selecteur-entreprise {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.selecteur-entreprise label {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.selecteur-entreprise select {
+  padding: 0.625rem 1rem;
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.selecteur-entreprise select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .conteneur-rapport {

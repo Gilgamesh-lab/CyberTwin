@@ -26,10 +26,10 @@ exports.getActif = (req, res) => {
 };
 
 exports.addActif = (req, res) => {
-    const {name, type, criticality, ipAddress, description} = req.body;
+    const {id_entreprise, name, type, criticality, ipAddress, description} = req.body;
     db.query(
-        'INSERT INTO actifs(name, type, criticality, ipAddress, description) VALUES(?,?,?,?,?)',
-        [name, type, criticality, ipAddress, description],
+        'INSERT INTO actifs(id_entreprise, name, type, criticality, ipAddress, description) VALUES(?,?,?,?,?,?)',
+        [id_entreprise || null, name, type, criticality, ipAddress, description],
     (err, result) => {
         if(err){
          console.error('Erreur ajout actif:', err);
@@ -46,10 +46,10 @@ exports.addActif = (req, res) => {
 
 exports.modifierActif = (req, res) => {
     const id = req.params.id;
-    const {name, type, criticality, ipAddress, description} = req.body;
+    const {id_entreprise, name, type, criticality, ipAddress, description} = req.body;
     db.query(
-        "UPDATE actifs SET name = ?, type = ?, criticality = ?, ipAddress = ?, description = ? WHERE id_actif = ?",
-        [name, type, criticality, ipAddress, description, id],
+        "UPDATE actifs SET id_entreprise = ?, name = ?, type = ?, criticality = ?, ipAddress = ?, description = ? WHERE id_actif = ?",
+        [id_entreprise || null, name, type, criticality, ipAddress, description, id],
     (err, result) => {
         if(err){
          console.error('Erreur modification actif:', err);
