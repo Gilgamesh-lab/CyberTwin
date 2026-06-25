@@ -26,31 +26,9 @@ export const useRiskStore = defineStore('risk', {
       this.chargement = true
       this.erreur = null
       
-      const assetStore = useAssetStore()
-      const vulnerabilityStore = useVulnerabilityStore()
-      const companyStore = useCompanyStore()
-
-      const donnees = {
-        assets: assetStore.assets,
-        vulnerabilities: vulnerabilityStore.vulnerabilites,
-        company: companyStore.companyData
-      }
-
-      try {
-        const resultat = await apiService.calculerRisque(donnees)
-        this.riskScore = resultat.riskScore
-        this.riskLevel = resultat.riskLevel
-        this.metrics = resultat.metrics
-        this.recommandations = resultat.recommendations || []
-      } catch (erreur) {
-        this.erreur = 'Impossible de calculer le risque'
-        console.error('Erreur calcul risque:', erreur)
-        
-        // Fallback en mode local si l'API ne répond pas
-        this.calculateRiskLocal()
-      } finally {
-        this.chargement = false
-      }
+      // Utiliser directement le calcul local (pas d'API backend)
+      this.calculateRiskLocal()
+      this.chargement = false
     },
 
     calculateRiskLocal() {
@@ -60,11 +38,11 @@ export const useRiskStore = defineStore('risk', {
 
       const assets = assetStore.assets
       const vulnerabilites = vulnerabilityStore.vulnerabilites
-      const company = companyStore.companyData
+      const company = companyStore.companyData || {}
 
-      const criticiteEleve = vulnerabilites.filter(v => v.criticite === 'eleve').length
-      const criticiteMoyen = vulnerabilites.filter(v => v.criticite === 'moyen').length
-      const criticiteFaible = vulnerabilites.filter(v => v.criticite === 'faible').length
+      const criticiteEleve = vulnerabilites.filter(v => v.criticality === 'eleve' || v.criticality === 'Élevé' || v.criticality === 'Critique').length
+      const criticiteMoyen = vulnerabilites.filter(v => v.criticality === 'moyen' || v.criticality === 'Moyen').length
+      const criticiteFaible = vulnerabilites.filter(v => v.criticality === 'faible' || v.criticality === 'Faible').length
 
       let riskScore = 0
 
@@ -80,7 +58,8 @@ export const useRiskStore = defineStore('risk', {
       riskScore += criticiteFaible * 2
 
       // Exposition sur Internet
-      const exposedServicesCount = company.exposedServices.length
+      const exposedServices = company.exposedServices || []
+      const exposedServicesCount = Array.isArray(exposedServices) ? exposedServices.length : 0
       riskScore += Math.min(exposedServicesCount * 5, 15)
 
       // Plafonner à 100

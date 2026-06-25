@@ -30,18 +30,26 @@ const obtenirActif = (id_actif) => {
 
 const obtenirLabelCriticite = (valeur) => {
   const labels = {
-    faible: 'Faible',
-    moyen: 'Moyen',
-    eleve: 'Élevé'
+    'faible': 'Faible',
+    'moyen': 'Moyen',
+    'eleve': 'Élevé',
+    'Faible': 'Faible',
+    'Moyen': 'Moyen',
+    'Élevé': 'Élevé',
+    'Critique': 'Critique'
   }
   return labels[valeur] || valeur
 }
 
 const obtenirCouleurCriticite = (valeur) => {
   const couleurs = {
-    faible: '#22c55e',
-    moyen: '#f59e0b',
-    eleve: '#ef4444'
+    'faible': '#22c55e',
+    'moyen': '#f59e0b',
+    'eleve': '#ef4444',
+    'Faible': '#22c55e',
+    'Moyen': '#f59e0b',
+    'Élevé': '#ef4444',
+    'Critique': '#dc3545'
   }
   return couleurs[valeur] || '#64748b'
 }
@@ -49,13 +57,13 @@ const obtenirCouleurCriticite = (valeur) => {
 
 <template>
   <div class="page-rapport">
-    <div v-if="chargement" class="conteneur-chargement">
+    <div v-if="riskStore.chargement" class="conteneur-chargement">
       <div class="spinner"></div>
       <p>Génération du rapport...</p>
     </div>
     
-    <div v-else-if="erreur" class="conteneur-erreur">
-      <p>{{ erreur }}</p>
+    <div v-else-if="riskStore.erreur" class="conteneur-erreur">
+      <p>{{ riskStore.erreur }}</p>
     </div>
     
     <template v-else>
@@ -79,7 +87,7 @@ const obtenirCouleurCriticite = (valeur) => {
           </div>
           <div class="ligne-info">
             <span class="label">Services exposés :</span>
-            <span class="valeur">{{ companyStore.companyData.exposedServices.join(', ') }}</span>
+            <span class="valeur">{{ Array.isArray(companyStore.companyData.exposedServices) ? companyStore.companyData.exposedServices.join(', ') : companyStore.companyData.exposedServices || '-' }}</span>
           </div>
         </div>
       </section>
@@ -125,8 +133,8 @@ const obtenirCouleurCriticite = (valeur) => {
                 <td>{{ obtenirNomActif(vulnerabilite.id_actif) }}</td>
                 <td>{{ vulnerabilite.cve }}</td>
                 <td>
-                  <span class="badge-criticite" :style="{ backgroundColor: obtenirCouleurCriticite(vulnerabilite.criticite) }">
-                    {{ obtenirActif(vulnerabilite.id_actif).criticality }}
+                  <span class="badge-criticite" :style="{ backgroundColor: obtenirCouleurCriticite(vulnerabilite.criticality) }">
+                    {{ obtenirLabelCriticite(vulnerabilite.criticality) }}
                   </span>
                 </td>
                 <td>{{ vulnerabilite.description || '-' }}</td>
