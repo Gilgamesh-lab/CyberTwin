@@ -26,16 +26,18 @@ exports.getActif = (req, res) => {
 };
 
 exports.addActif = (req, res) => {
-    const {name, type, criticality, ipAddress, description, exposition_internet} = req.body;
+    const {name, type, criticality, ipAddress, description} = req.body;
     db.query(
-        'INSERT INTO actifs(name, type, criticality,ipAddress,description, exposition_internet) VALUES(?,?,?,?, ?)',
-        [name, type, criticality, ipAddress, description, exposition_internet],
+        'INSERT INTO actifs(name, type, criticality, ipAddress, description) VALUES(?,?,?,?,?)',
+        [name, type, criticality, ipAddress, description],
     (err, result) => {
         if(err){
+         console.error('Erreur ajout actif:', err);
          return res.status(500).json(err);
         }
         res.status(201).json({
-            message: "Actif ajouté"
+            message: "Actif ajouté",
+            id: result.insertId
         });
         }
     );
@@ -44,16 +46,18 @@ exports.addActif = (req, res) => {
 
 exports.modifierActif = (req, res) => {
     const id = req.params.id;
-    const {name, type, criticality, ipAddress, description, exposition_internet} = req.body;
+    const {name, type, criticality, ipAddress, description} = req.body;
     db.query(
-        "UPDATE actifs SET name = ?, type = ?, criticality = ?, ipAddress = ?, description = ?, exposition_internet = ? WHERE id_actif  =  ?",
-        [name, type, criticality, ipAddress, description, exposition_internet, id],
+        "UPDATE actifs SET name = ?, type = ?, criticality = ?, ipAddress = ?, description = ? WHERE id_actif = ?",
+        [name, type, criticality, ipAddress, description, id],
     (err, result) => {
         if(err){
+         console.error('Erreur modification actif:', err);
          return res.status(500).json(err);
         }
         res.status(201).json({
-            message: "Actifs mis à jour"
+            message: "Actifs mis à jour",
+            id: id
         });
         }
     );
@@ -61,16 +65,33 @@ exports.modifierActif = (req, res) => {
 
 
 exports.supprimeActif = (req, res) => {
-    const id = req.params.id;
+    const id = parseInt(req.params.id);
+    console.log('Tentative de suppression actif ID:', id);
+    
     db.query(
-        'DELETE FROM actifs WHERE id_actif = ' + id,
+        'DELETE FROM vulnerabilite WHERE id_actif = ?',
+        [id],
     (err, result) => {
         if(err){
+         console.error('Erreur suppression vulnérabilités associées:', err);
          return res.status(500).json(err);
         }
-        res.status(201).json({
-            message: "Actif supprimé"
-        });
-        }
-    );
+        console.log('Vulnérabilités associées supprimées');
+        
+        db.query(
+            'DELETE FROM actifs WHERE id_actif = ?',
+            [id],
+        (err, result) => {
+            if(err){
+             console.error('Erreur suppression actif:', err);
+             return res.status(500).json(err);
+            }
+            console.log('Actif supprimé avec succès, ID:', id);
+            res.status(201).json({
+                message: "Actif supprimé",
+                id: id
+            });
+            }
+        );
+    });
 };

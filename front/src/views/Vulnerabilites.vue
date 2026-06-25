@@ -62,8 +62,8 @@ const ouvrirModal = (vulnerabilite = null) => {
     donneesFormulaire.value = {
       id_actif: '',
       cve: '',
-      criticite: 'moyen',
-      description: null
+      description: '',
+      criticality: 'moyen'
     }
   }
   afficherModal.value = true
@@ -96,9 +96,15 @@ const soumettreFormulaire = async () => {
   }
 }
 
-const supprimerVulnerabilite = (id) => {
+const supprimerVulnerabilite = async (id) => {
   if (confirm('Êtes-vous sûr de vouloir supprimer cette vulnérabilité ?')) {
-    vulnerabilityStore.supprimerVulnerabilite(id)
+    try {
+      await vulnerabilityStore.supprimerVulnerabilite(id)
+      alert('Vulnérabilité supprimée avec succès!')
+    } catch (erreur) {
+      console.error('Erreur suppression:', erreur)
+      alert('Erreur lors de la suppression')
+    }
   }
 }
 
@@ -114,14 +120,26 @@ const obtenirActif = (id_actif) => {
 
 const obtenirLabelCriticite = (valeur) => {
   const niveau = niveauxCriticite.find(n => n.valeur === valeur)
-  return niveau ? niveau.label : valeur
+  if (niveau) return niveau.label
+  // Fallback pour les valeurs de la base de données
+  const labels = {
+    'Faible': 'Faible',
+    'Moyen': 'Moyen',
+    'Élevé': 'Élevé',
+    'Critique': 'Critique'
+  }
+  return labels[valeur] || valeur
 }
 
 const obtenirCouleurCriticite = (valeur) => {
   const couleurs = {
-    faible: '#22c55e',
-    moyen: '#f59e0b',
-    eleve: '#ef4444'
+    'faible': '#22c55e',
+    'moyen': '#f59e0b',
+    'eleve': '#ef4444',
+    'Faible': '#22c55e',
+    'Moyen': '#f59e0b',
+    'Élevé': '#ef4444',
+    'Critique': '#dc3545'
   }
   return couleurs[valeur] || '#64748b'
 }
@@ -171,8 +189,8 @@ onUnmounted(() => {
             <td>{{ obtenirNomActif(vulnerabilite.id_actif) }}</td>
             <td>{{ vulnerabilite.cve }}</td>
             <td>
-              <span class="badge-criticite" :style="{ backgroundColor: obtenirCouleurCriticite(vulnerabilite.criticite) }">
-                {{ obtenirActif(vulnerabilite.id_actif).criticality }}
+              <span class="badge-criticite" :style="{ backgroundColor: obtenirCouleurCriticite(vulnerabilite.criticality) }">
+                {{ obtenirLabelCriticite(vulnerabilite.criticality) }}
               </span>
             </td>
             <td>{{ vulnerabilite.description}}</td>
@@ -231,7 +249,7 @@ onUnmounted(() => {
 
           <div class="form-group">
             <label for="criticite">Criticité</label>
-            <select id="criticite" v-model="donneesFormulaire.criticite">
+            <select id="criticite" v-model="donneesFormulaire.criticality">
               <option v-for="niveau in niveauxCriticite" :key="niveau.valeur" :value="niveau.valeur">
                 {{ niveau.label }}
               </option>

@@ -42,10 +42,10 @@ const assetTypes = [
 ]
 
 const criticalityLevels = [
-  { value: 'low', label: 'Faible' },
-  { value: 'medium', label: 'Moyen' },
-  { value: 'high', label: 'Élevé' },
-  { value: 'critical', label: 'Critique' }
+  { value: 'faible', label: 'Faible' },
+  { value: 'moyen', label: 'Moyen' },
+  { value: 'eleve', label: 'Élevé' },
+  { value: 'critique', label: 'Critique' }
 ]
 
 const errors = ref({})
@@ -78,7 +78,7 @@ const openAddModal = () => {
     type: '',
     description: '',
     ipAddress: '',
-    criticality: 'medium'
+    criticality: 'moyen'
   }
   errors.value = {}
   showModal.value = true
@@ -107,67 +107,92 @@ const closeModal = () => {
     type: '',
     description: '',
     ipAddress: '',
-    criticality: 'medium'
+    criticality: 'moyen'
   }
 }
 
 const handleSubmit = async () => {
+  console.log('Tentative de soumission', formData.value)
   if (validateForm()) {
+    console.log('Formulaire validé')
     soumissionEnCours.value = true
     
     try {
       if (isEditing.value) {
-        console.log("lol : " + formData.value.id)
+        console.log('Modification actif avec ID:', formData.value.id)
         await assetStore.modifierActif(formData.value.id, formData.value)
+        alert('Actif modifié avec succès!')
       } else {
+        console.log('Ajout nouvel actif')
         await assetStore.ajouterActif(formData.value)
+        alert('Actif ajouté avec succès!')
       }
       closeModal()
     } catch (erreur) {
       console.error('Erreur soumission:', erreur)
+      alert('Erreur lors de l\'opération: ' + erreur.message)
     } finally {
       soumissionEnCours.value = false
     }
+  } else {
+    console.log('Formulaire invalide:', errors.value)
+    alert('Veuillez corriger les erreurs du formulaire')
   }
 }
 
 const handleDelete = async (id) => {
+  console.log('Tentative de suppression actif ID:', id)
   if (confirm('Êtes-vous sûr de vouloir supprimer cet actif ?')) {
     try {
+      console.log('Suppression actif ID:', id)
       await assetStore.supprimerActif(id)
+      alert('Actif supprimé avec succès!')
     } catch (erreur) {
       console.error('Erreur suppression:', erreur)
+      alert('Erreur lors de la suppression: ' + erreur.message)
     }
+  } else {
+    console.log('Suppression annulée')
   }
 }
 
 const getCriticalityColor = (criticality) => {
   const colors = {
-    low: '#28a745',
-    medium: '#ffc107',
-    high: '#fd7e14',
-    critical: '#dc3545'
+    'Faible': '#28a745',
+    'Moyen': '#ffc107',
+    'Élevé': '#fd7e14',
+    'Critique': '#dc3545',
+    'faible': '#28a745',
+    'moyen': '#ffc107',
+    'eleve': '#fd7e14',
+    'critique': '#dc3545'
   }
   return colors[criticality] || '#6c757d'
 }
 
 const getCriticalityLabel = (criticality) => {
   const level = criticalityLevels.find(l => l.value === criticality)
-  return level ? level.label : criticality
+  if (level) return level.label
+  // Fallback pour les valeurs de la base de données
+  const labels = {
+    'Faible': 'Faible',
+    'Moyen': 'Moyen',
+    'Élevé': 'Élevé',
+    'Critique': 'Critique'
+  }
+  return labels[criticality] || criticality
 }
 </script>
 
 <template>
-  <div class="assets-page">
-    <div class="page-header">
-      <h1>Gestion des Actifs</h1>
-      <button @click="openAddModal" class="btn-primary">
-        + Ajouter un actif
-      </button>
+  <div class="page-actifs">
+    <div class="en-tete-page">
+      <h1>Actifs</h1>
+      <button class="btn-principal" @click="openAddModal">+ Ajouter un actif</button>
     </div>
 
-    <div class="assets-table-container">
-      <table class="assets-table" v-if="assetStore.assets.length > 0">
+    <div class="conteneur-tableau">
+      <table class="tableau-actifs">
         <thead>
           <tr>
             <th>Nom</th>
@@ -184,36 +209,32 @@ const getCriticalityLabel = (criticality) => {
             <td>{{ asset.type }}</td>
             <td>{{ asset.ipAddress || '-' }}</td>
             <td>
-              <span 
-                class="criticality-badge"
-                :style="{ backgroundColor: getCriticalityColor(asset.criticality) }"
-              >
+              <span class="badge-criticite" :style="{ backgroundColor: getCriticalityColor(asset.criticality) }">
                 {{ getCriticalityLabel(asset.criticality) }}
               </span>
             </td>
             <td>{{ asset.description || '-' }}</td>
-            <td class="actions-cell">
-              <button @click="openEditModal(asset)" class="btn-edit" title="Modifier">
+            <td class="cellule-actions">
+              <button class="btn-modifier" @click="openEditModal(asset)" title="Modifier">
                 ✏️
               </button>
-              <button @click="handleDelete(asset.id_actif)" class="btn-delete" title="Supprimer">
+              <button class="btn-supprimer" @click="handleDelete(asset.id_actif)" title="Supprimer">
                 🗑️
               </button>
             </td>
           </tr>
         </tbody>
       </table>
-      <div v-else class="empty-state">
-        <p>Aucun actif enregistré</p>
+      <div v-if="assetStore.assets.length === 0" class="etat-vide">
+        <p>Aucun actif détecté</p>
       </div>
     </div>
 
-    <!-- Modal -->
-    <div v-if="showModal" class="modal-overlay" @click="closeModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>{{ isEditing ? 'Modifier l\'actif' : 'Ajouter un actif' }}</h2>
-          <button @click="closeModal" class="btn-close">×</button>
+    <div v-if="showModal" class="overlay-modal" @click.self="closeModal">
+      <div class="contenu-modal" @click.stop>
+        <div class="en-tete-modal">
+          <h2>{{ isEditing ? 'Modifier' : 'Ajouter' }} un actif</h2>
+          <button class="btn-fermer" @click="closeModal">×</button>
         </div>
         <form @submit.prevent="handleSubmit" class="modal-form">
           <div class="form-group">
@@ -223,6 +244,7 @@ const getCriticalityLabel = (criticality) => {
               v-model="formData.name"
               type="text"
               :class="{ 'error': errors.name }"
+              placeholder="Ex: Serveur Web"
             />
             <span v-if="errors.name" class="error-message">{{ errors.name }}</span>
           </div>
@@ -234,7 +256,7 @@ const getCriticalityLabel = (criticality) => {
               v-model="formData.type"
               :class="{ 'error': errors.type }"
             >
-              <option value="">Sélectionnez un type</option>
+              <option value="">Sélectionner un type</option>
               <option v-for="type in assetTypes" :key="type" :value="type">
                 {{ type }}
               </option>
@@ -249,14 +271,18 @@ const getCriticalityLabel = (criticality) => {
               v-model="formData.ipAddress"
               type="text"
               :class="{ 'error': errors.ipAddress }"
+              placeholder="Ex: 192.168.1.1"
             />
             <span v-if="errors.ipAddress" class="error-message">{{ errors.ipAddress }}</span>
           </div>
 
           <div class="form-group">
             <label for="criticality">Criticité</label>
-            <select id="criticality" v-model="formData.criticality">
-              <option v-for="level in criticalityLevels" :key="level.label" :value="level.label">
+            <select
+              id="criticality"
+              v-model="formData.criticality"
+            >
+              <option v-for="level in criticalityLevels" :key="level.value" :value="level.value">
                 {{ level.label }}
               </option>
             </select>
@@ -268,12 +294,13 @@ const getCriticalityLabel = (criticality) => {
               id="description"
               v-model="formData.description"
               rows="3"
+              placeholder="Description de l'actif..."
             ></textarea>
           </div>
 
           <div class="form-actions">
-            <button type="button" @click="closeModal" class="btn-secondary" :disabled="soumissionEnCours">Annuler</button>
-            <button type="submit" class="btn-primary" :disabled="soumissionEnCours">
+            <button type="button" @click="closeModal" class="btn-secondaire" :disabled="soumissionEnCours">Annuler</button>
+            <button type="submit" class="btn-principal" :disabled="soumissionEnCours">
               {{ soumissionEnCours ? 'En cours...' : (isEditing ? 'Modifier l\'actif' : 'Ajouter l\'actif') }}
             </button>
           </div>
@@ -284,11 +311,11 @@ const getCriticalityLabel = (criticality) => {
 </template>
 
 <style scoped>
-.assets-page {
+.page-actifs {
   width: 100%;
 }
 
-.page-header {
+.en-tete-page {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -303,7 +330,7 @@ h1 {
   letter-spacing: -0.02em;
 }
 
-.btn-primary {
+.btn-principal {
   padding: 0.875rem 1.75rem;
   background: var(--accent-primary);
   color: white;
@@ -316,18 +343,18 @@ h1 {
   box-shadow: var(--shadow-subtle);
 }
 
-.btn-primary:hover:not(:disabled) {
+.btn-principal:hover:not(:disabled) {
   background: var(--accent-secondary);
   box-shadow: var(--shadow-glow);
   transform: translateY(-1px);
 }
 
-.btn-primary:disabled {
+.btn-principal:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.assets-table-container {
+.conteneur-tableau {
   background: var(--bg-card);
   border-radius: 12px;
   border: 1px solid var(--border-card);
@@ -335,21 +362,21 @@ h1 {
   transition: all var(--transition-normal);
 }
 
-.assets-table-container:hover {
+.conteneur-tableau:hover {
   border-color: var(--accent-primary);
   box-shadow: var(--shadow-glow);
 }
 
-.assets-table {
+.tableau-actifs {
   width: 100%;
   border-collapse: collapse;
 }
 
-.assets-table thead {
+.tableau-actifs thead {
   background: var(--bg-secondary);
 }
 
-.assets-table th {
+.tableau-actifs th {
   padding: 1rem 1.5rem;
   text-align: left;
   font-weight: 600;
@@ -360,25 +387,25 @@ h1 {
   border-bottom: 1px solid var(--border-card);
 }
 
-.assets-table tbody tr {
+.tableau-actifs tbody tr {
   border-bottom: 1px solid var(--border-subtle);
   transition: all var(--transition-fast);
 }
 
-.assets-table tbody tr:hover {
+.tableau-actifs tbody tr:hover {
   background: var(--bg-hover);
 }
 
-.assets-table tbody tr:last-child {
+.tableau-actifs tbody tr:last-child {
   border-bottom: none;
 }
 
-.assets-table td {
+.tableau-actifs td {
   padding: 1rem 1.5rem;
   color: var(--text-secondary);
 }
 
-.actions-cell {
+.cellule-actions {
   display: flex;
   gap: 0.5rem;
 }
@@ -425,149 +452,99 @@ h1 {
   letter-spacing: 0.05em;
 }
 
-.badge-faible {
-  background: var(--risk-low);
-}
-
-.badge-moyen {
-  background: var(--risk-medium);
-}
-
-.badge-eleve {
-  background: var(--risk-high);
-}
-
-.badge-critique {
-  background: var(--risk-critical);
-}
-
-.empty-state {
-  padding: 4rem 2rem;
+.etat-vide {
+  padding: 3rem;
   text-align: center;
   color: var(--text-muted);
 }
 
-.empty-state p {
-  font-size: 1.1rem;
-  margin: 0;
-}
-
-/* Modal */
-.modal-overlay {
+.overlay-modal {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  animation: fadeIn var(--transition-normal);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.modal-content {
+.contenu-modal {
   background: var(--bg-card);
   border-radius: 12px;
-  width: 90%;
+  border: 1px solid var(--border-card);
   max-width: 500px;
+  width: 90%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: var(--shadow-card);
-  border: 1px solid var(--border-card);
-  animation: slideUp var(--transition-normal);
+  box-shadow: var(--shadow-glow);
 }
 
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.modal-header {
+.en-tete-modal {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
   border-bottom: 1px solid var(--border-card);
-  background: var(--bg-secondary);
 }
 
-.modal-header h2 {
+.en-tete-modal h2 {
   margin: 0;
   color: var(--text-primary);
   font-size: 1.25rem;
   font-weight: 600;
 }
 
-.btn-close {
-  background: var(--bg-hover);
-  border: 1px solid var(--border-card);
-  font-size: 1.25rem;
+.btn-fermer {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-muted);
   cursor: pointer;
-  color: var(--text-secondary);
   padding: 0;
-  width: 36px;
-  height: 36px;
-  line-height: 1;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
   transition: all var(--transition-fast);
 }
 
-.btn-close:hover {
+.btn-fermer:hover {
+  background: var(--bg-hover);
   color: var(--text-primary);
-  background: var(--bg-card);
-  border-color: var(--accent-primary);
 }
 
 .modal-form {
   padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
 }
 
 .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
   font-weight: 500;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: 0.875rem;
-  border: 1px solid var(--border-card);
-  border-radius: 8px;
-  font-size: 0.9rem;
-  transition: all var(--transition-fast);
+  padding: 0.75rem;
   background: var(--bg-secondary);
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
   color: var(--text-primary);
-  font-family: inherit;
-  box-sizing: border-box;
+  font-size: 0.875rem;
+  transition: all var(--transition-fast);
 }
 
 .form-group input:focus,
@@ -575,37 +552,31 @@ h1 {
 .form-group textarea:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px var(--accent-glow);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 .form-group input.error,
 .form-group select.error {
   border-color: var(--risk-high);
-  background: rgba(239, 68, 68, 0.1);
-}
-
-.form-group input.error:focus,
-.form-group select.error:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
 }
 
 .error-message {
   display: block;
+  margin-top: 0.375rem;
   color: var(--risk-high);
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.75rem;
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--border-card);
 }
 
-.btn-secondary {
+.btn-secondaire {
   padding: 0.875rem 1.75rem;
   background: var(--bg-hover);
   color: var(--text-secondary);
@@ -617,57 +588,14 @@ h1 {
   transition: all var(--transition-fast);
 }
 
-.btn-secondary:hover:not(:disabled) {
+.btn-secondaire:hover:not(:disabled) {
   background: var(--bg-card);
   color: var(--text-primary);
   border-color: var(--accent-primary);
 }
 
-.btn-secondary:disabled {
+.btn-secondaire:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: stretch;
-  }
-
-  h1 {
-    font-size: 1.5rem;
-  }
-
-  .assets-table {
-    font-size: 0.875rem;
-  }
-
-  .assets-table th,
-  .assets-table td {
-    padding: 0.875rem 0.75rem;
-  }
-
-  .modal-content {
-    width: 95%;
-    max-height: 95vh;
-  }
-
-  .modal-header {
-    padding: 1.25rem;
-  }
-
-  .modal-form {
-    padding: 1.25rem;
-  }
-
-  .actions-formulaire {
-    flex-direction: column;
-  }
-
-  .btn-primary,
-  .btn-secondaire {
-    width: 100%;
-  }
 }
 </style>

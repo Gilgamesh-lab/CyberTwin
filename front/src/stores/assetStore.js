@@ -28,7 +28,12 @@ export const useAssetStore = defineStore('asset', {
       this.erreur = null
       
       try {
-        const nouvelActif = await apiService.creerActif(actif)
+        const reponse = await apiService.creerActif(actif)
+        const nouvelActif = {
+          ...actif,
+          id: reponse.id,
+          id_actif: reponse.id
+        }
         this.assets.push(nouvelActif)
       } catch (erreur) {
         this.erreur = 'Impossible d\'ajouter l\'actif'
@@ -44,10 +49,10 @@ export const useAssetStore = defineStore('asset', {
       this.erreur = null
       
       try {
-        const actifModifie = await apiService.modifierActif(id, donnees)
-        const index = this.assets.findIndex(a => a.id === id)
+        await apiService.modifierActif(id, donnees)
+        const index = this.assets.findIndex(a => a.id_actif === id)
         if (index !== -1) {
-          this.assets[index] = actifModifie
+          this.assets[index] = { ...this.assets[index], ...donnees }
         }
       } catch (erreur) {
         this.erreur = 'Impossible de modifier l\'actif'
@@ -64,7 +69,7 @@ export const useAssetStore = defineStore('asset', {
       
       try {
         await apiService.supprimerActif(id)
-        this.assets = this.assets.filter(a => a.id !== id)
+        this.assets = this.assets.filter(a => a.id_actif !== id)
       } catch (erreur) {
         this.erreur = 'Impossible de supprimer l\'actif'
         console.error('Erreur suppression actif:', erreur)
