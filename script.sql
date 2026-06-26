@@ -64,4 +64,3 @@ INSERT INTO vulnerabilite (id_actif, id_entreprise, type_vulnerabilite, descript
 (6, 2, 'Injection SQL', 'Formulaire vulnérable aux injections SQL', 'Faible'),
 -- HealthCare (3) : actifs 7, 8 -> FAIBLE
 (7, 3, 'Sauvegarde manquante', 'Absence de sauvegarde des données', 'Faible'),
-(8, 3, 'Logiciel obsolète', 'Version obsolète de l\'application', 'Faible');

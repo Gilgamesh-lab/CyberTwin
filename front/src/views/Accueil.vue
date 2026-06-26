@@ -25,19 +25,16 @@ const demarrerSimulation = () => {
         <div class="carte-fonctionnalite">
           <div class="icone-fonctionnalite">⚙️</div>
           <h3 class="titre-fonctionnalite">Configuration</h3>
-          <p class="description-fonctionnalite">Saisissez les caractéristiques de votre entreprise pour personnaliser l'analyse</p>
         </div>
 
         <div class="carte-fonctionnalite">
           <div class="icone-fonctionnalite">🗺️</div>
           <h3 class="titre-fonctionnalite">Cartographie</h3>
-          <p class="description-fonctionnalite">Ajoutez vos actifs informatiques et détectez les failles potentielles</p>
         </div>
 
         <div class="carte-fonctionnalite">
           <div class="icone-fonctionnalite">📊</div>
           <h3 class="titre-fonctionnalite">Analyse</h3>
-          <p class="description-fonctionnalite">Calculez votre score de risque et générez le rapport final</p>
         </div>
       </div>
     </section>

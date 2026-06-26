@@ -105,12 +105,17 @@ export const useRiskStore = defineStore('risk', {
     },
 
     getRecommendations() {
-      if (this.recommandations.length > 0) {
-        return this.recommandations
-      }
-
       const recommendations = []
       const metrics = this.metrics
+
+      // Recommandation globale en fonction du niveau de risque de l'entreprise
+      if (this.riskLevel === 'eleve') {
+        recommendations.push('Niveau de risque élevé : établir un plan de remédiation prioritaire et mobiliser une équipe de réponse à incident')
+      } else if (this.riskLevel === 'moyen') {
+        recommendations.push('Niveau de risque moyen : planifier la correction des vulnérabilités et renforcer la surveillance')
+      } else {
+        recommendations.push('Niveau de risque faible : maintenir les bonnes pratiques de sécurité actuelles')
+      }
 
       if (metrics.criticalVulnerabilities > 0) {
         recommendations.push('Priorité absolue : Corriger les vulnérabilités critiques immédiatement')
@@ -126,10 +131,6 @@ export const useRiskStore = defineStore('risk', {
 
       if (metrics.totalAssets > 10) {
         recommendations.push('Renforcer la surveillance des actifs critiques')
-      }
-
-      if (recommendations.length === 0) {
-        recommendations.push('Maintenir les bonnes pratiques de sécurité actuelles')
       }
 
       return recommendations
