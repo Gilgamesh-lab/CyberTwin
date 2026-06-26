@@ -31,6 +31,10 @@ onMounted(async () => {
   await chargerDonneesEntreprise(companyId)
 })
 
+const imprimer = () => {
+  window.print()
+}
+
 const obtenirNomActif = (actifId) => {
   const actif = assetStore.obtenirParId(actifId)
   return actif ? actif.name : 'Actif inconnu'
@@ -203,7 +207,7 @@ const obtenirCouleurCriticite = (valeur) => {
     </div>
     </template>
     
-    <button class="btn-exporter" @click="window.print()">
+    <button class="btn-exporter" @click="imprimer">
       🖨️ Imprimer / Exporter en PDF
     </button>
   </div>
